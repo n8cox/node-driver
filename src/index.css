@@ -1,0 +1,362 @@
+/* Full-viewport dark dense tool UI */
+
+:root {
+  --bg-base: #0a0a0b;
+  --bg-panel: #111113;
+  --bg-row: #141416;
+  --bg-row-hover: #1a1a1e;
+  --border: #2a2a30;
+  --text: #e4e4e7;
+  --text-muted: #71717a;
+  --text-dim: #52525b;
+  --accent: #3b82f6;
+
+  --role-human: #fbbf24;
+  --role-hemisphere: #a78bfa;
+  --role-connection: #34d399;
+  --role-motor: #f87171;
+
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+
+  --row-height: 52px;
+  --strip-height: 40px;
+  --footer-height: 28px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--bg-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Identity strip */
+.identity-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--strip-height);
+  padding: 0 12px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.identity-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.product-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.identity-name {
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.identity-desc {
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.identity-name.muted,
+.muted {
+  color: var(--text-muted);
+}
+
+.identity-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.adapter-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+
+.refresh-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Error banner */
+.error-banner {
+  padding: 6px 12px;
+  background: #3f1212;
+  border-bottom: 1px solid #7f1d1d;
+  color: #fecaca;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Main content */
+.main {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
+}
+
+/* Roster */
+.roster {
+  padding: 0;
+}
+
+.roster-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-base);
+  z-index: 1;
+}
+
+.roster-header h2 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.roster-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.roster-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Driver rows */
+.driver-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: var(--row-height);
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-row);
+  transition: background 0.1s;
+}
+
+.driver-row:hover {
+  background: var(--bg-row-hover);
+}
+
+.driver-row.role-human {
+  border-left: 3px solid var(--role-human);
+}
+
+.driver-row.role-hemisphere {
+  border-left: 3px solid var(--role-hemisphere);
+}
+
+.driver-row.role-connection {
+  border-left: 3px solid var(--role-connection);
+}
+
+.driver-row.role-motor {
+  border-left: 3px solid var(--role-motor);
+}
+
+.expand-btn,
+.expand-spacer {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  margin-left: 8px;
+}
+
+.expand-btn {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.expand-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+
+.expand-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.driver-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.driver-topline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+
+.driver-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.driver-sep {
+  color: var(--text-dim);
+}
+
+.driver-purpose {
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+}
+
+.role-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.role-badge.role-human {
+  color: var(--role-human);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.role-badge.role-hemisphere {
+  color: var(--role-hemisphere);
+  background: rgba(167, 139, 250, 0.12);
+}
+
+.role-badge.role-connection {
+  color: var(--role-connection);
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.role-badge.role-motor {
+  color: var(--role-motor);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+/* Body state */
+.body-state {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.body-state-meta {
+  color: var(--text-dim);
+}
+
+.body-state-activity {
+  color: var(--text-muted);
+}
+
+/* Nested depth visual */
+.driver-node[data-depth='1'] .driver-row {
+  background: #0f0f11;
+}
+
+.driver-node[data-depth='2'] .driver-row {
+  background: #0c0c0e;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--footer-height);
+  padding: 0 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.footer-sep {
+  color: var(--border);
+}
