@@ -29,11 +29,5 @@ export interface EnsembleIdentity {
   description?: string;
 }
 
-/** Snapshot returned by adapters — identity plus main drivers only. */
-export interface EnsembleSnapshot {
-  identity: EnsembleIdentity;
-  drivers: DriverNode[];
-}
-
 /** Which adapter backs the UI. */
 export type AdapterKind = 'sample' | 'http';

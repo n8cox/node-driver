@@ -30,8 +30,9 @@ Node Driver is the standalone primary working interface for **Machine Intelligen
    - `hemisphere` — Claude, Grok, and similar reasoning models
    - `connection` — local model endpoints (Ollama, etc.)
    - `motor` — bots and process runners (n8n, cron, etc.)
-4. **No Alignment ceremony** — no wake flows, no personal paths, no private secrets. Clone and run with `npm i && npm run dev`.
-5. **Literal copy** — UI strings describe what nodes are and do; avoid theatrical or metaphorical language.
+4. **Human-first roster order** — main drivers render with the `human` role first, then hemispheres, connections, and motors. Adapters should return drivers in this order; the UI does not re-sort.
+5. **No Alignment ceremony** — no wake flows, no personal paths, no private secrets. Clone and run with `npm i && npm run dev`.
+6. **Literal copy** — UI strings describe what nodes are and do; avoid theatrical or metaphorical language.
 
 ## Adapter seam
 
@@ -59,7 +60,11 @@ Defines the remote contract for a future ensemble HTTP API:
 | GET | `/ensemble/drivers` | `DriverNode[]` (main drivers) |
 | GET | `/ensemble/drivers/:id/children` | `DriverNode[]` (activity sub-nodes) |
 
-Set `VITE_ADAPTER=http` and optionally `VITE_HTTP_BASE_URL` / `VITE_HTTP_TOKEN`. The stub throws until a backend implements these endpoints.
+Set `VITE_ADAPTER=http` and optionally `VITE_HTTP_BASE_URL` / `VITE_HTTP_TOKEN`. The stub throws until a backend implements these endpoints. When wired, requests will send `Accept: application/json` and an optional `Authorization: Bearer` header from the configured token.
+
+### Adapter response shapes
+
+v1 adapters expose identity and main drivers through separate methods (`getIdentity`, `getMainDrivers`). A combined `{ identity, drivers }` snapshot may appear in a future batch HTTP endpoint but is not a v1 type.
 
 ## Shared H seam (not implemented)
 
@@ -93,7 +98,7 @@ Implementation approach (future):
 
 ## Lazy drill
 
-Expand (`+`) on a row with `hasChildren: true` calls `adapter.expandNode(id)`. Children render indented under the parent. Collapse (`−`) hides loaded children without discarding cached data. A loading indicator (`…`) shows while the adapter resolves.
+Expand (`+`) on a row with `hasChildren: true` calls `adapter.expandNode(id)` **only when children are not yet cached**. Children render indented under the parent. Collapse (`−`) hides loaded children without discarding cached data — re-expanding a collapsed row reuses the cached children and does not call `expandNode` again. A loading indicator (`…`) shows while the adapter resolves a first-time expand.
 
 ## Tech stack
 

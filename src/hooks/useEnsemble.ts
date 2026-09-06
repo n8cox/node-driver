@@ -34,6 +34,18 @@ function nodeHasExpandableChildren(node: DriverNode, expandedIds: Set<string>): 
   return Boolean(node.hasChildren) || expandedIds.has(node.id);
 }
 
+/** Walk the driver tree to find a node by id (includes nested children). */
+export function findNodeInTree(nodes: DriverNode[], nodeId: string): DriverNode | undefined {
+  for (const node of nodes) {
+    if (node.id === nodeId) return node;
+    if (node.children?.length) {
+      const found = findNodeInTree(node.children, nodeId);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
+
 export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
   const [identity, setIdentity] = useState<EnsembleIdentity | null>(null);
   const [drivers, setDrivers] = useState<DriverNode[]>([]);
@@ -79,6 +91,12 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
         return;
       }
 
+      const cached = findNodeInTree(drivers, nodeId);
+      if (cached?.children !== undefined) {
+        setExpandedIds((prev) => new Set(prev).add(nodeId));
+        return;
+      }
+
       setExpandingIds((prev) => new Set(prev).add(nodeId));
       try {
         const children = await adapter.expandNode(nodeId);
@@ -94,7 +112,7 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
         });
       }
     },
-    [adapter, expandedIds],
+    [adapter, expandedIds, drivers],
   );
 
   return useMemo(

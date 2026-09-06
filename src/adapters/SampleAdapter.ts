@@ -174,6 +174,17 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Deep-clone a driver node so bodyState and nested children do not share refs. */
+function cloneDriverNode(node: DriverNode): DriverNode {
+  return {
+    ...node,
+    bodyState: { ...node.bodyState },
+    ...(node.children !== undefined
+      ? { children: node.children.map(cloneDriverNode) }
+      : {}),
+  };
+}
+
 /**
  * Sample adapter with realistic demo data.
  * Ships as the default — no API keys or private paths required.
@@ -188,13 +199,13 @@ export class SampleAdapter implements EnsembleAdapter {
 
   async getMainDrivers(): Promise<DriverNode[]> {
     await delay(120);
-    return MAIN_DRIVERS.map((d) => ({ ...d }));
+    return MAIN_DRIVERS.map(cloneDriverNode);
   }
 
   async expandNode(nodeId: string): Promise<DriverNode[]> {
     await delay(EXPAND_DELAY_MS);
     this.expanded.add(nodeId);
-    return (CHILDREN[nodeId] ?? []).map((c) => ({ ...c }));
+    return (CHILDREN[nodeId] ?? []).map(cloneDriverNode);
   }
 
   /** Test helper — whether a node has been expanded. */

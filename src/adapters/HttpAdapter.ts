@@ -25,12 +25,6 @@ export class HttpAdapter implements EnsembleAdapter {
     this.token = options.token;
   }
 
-  private headers(): HeadersInit {
-    const h: Record<string, string> = { Accept: 'application/json' };
-    if (this.token) h.Authorization = `Bearer ${this.token}`;
-    return h;
-  }
-
   async getIdentity(): Promise<EnsembleIdentity> {
     return this.notImplemented('getIdentity', `${this.baseUrl}/ensemble/identity`);
   }
@@ -47,9 +41,9 @@ export class HttpAdapter implements EnsembleAdapter {
   }
 
   private async notImplemented<T>(method: string, url: string): Promise<T> {
-    void this.headers();
+    const authNote = this.token ? ' Bearer token is configured.' : '';
     throw new HttpAdapterNotConfiguredError(
-      `HttpAdapter.${method} is a stub — no backend at ${url}. ` +
+      `HttpAdapter.${method} is a stub — no backend at ${url}.${authNote} ` +
         'Use VITE_ADAPTER=sample or implement the HTTP endpoints.',
     );
   }

@@ -1,7 +1,18 @@
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { HttpAdapter, HttpAdapterNotConfiguredError } from '@/adapters/HttpAdapter';
 import { SampleAdapter, MAIN_DRIVERS, CHILDREN, IDENTITY } from '@/adapters/SampleAdapter';
+import { useEnsemble } from '@/hooks/useEnsemble';
 import type { DriverNode, EnsembleIdentity } from '@/types/ensemble';
+
+class CountingSampleAdapter extends SampleAdapter {
+  expandCalls = 0;
+
+  override async expandNode(nodeId: string): Promise<DriverNode[]> {
+    this.expandCalls++;
+    return super.expandNode(nodeId);
+  }
+}
 
 describe('SampleAdapter', () => {
   it('returns ensemble identity', async () => {
@@ -42,6 +53,49 @@ describe('SampleAdapter', () => {
     expect(roles.has('hemisphere')).toBe(true);
     expect(roles.has('connection')).toBe(true);
     expect(roles.has('motor')).toBe(true);
+  });
+
+  it('deep-clones bodyState so callers cannot mutate shared refs', async () => {
+    const adapter = new SampleAdapter();
+    const drivers = await adapter.getMainDrivers();
+    drivers[0].bodyState.state = 'mutated';
+    expect(MAIN_DRIVERS[0].bodyState.state).toBe('present');
+
+    const children = await adapter.expandNode('hemisphere-claude');
+    children[0].bodyState.state = 'mutated';
+    expect(CHILDREN['hemisphere-claude'][0].bodyState.state).toBe('complete');
+  });
+
+  it('lists human role first in main drivers', async () => {
+    const adapter = new SampleAdapter();
+    const drivers = await adapter.getMainDrivers();
+    expect(drivers[0].role).toBe('human');
+  });
+});
+
+describe('useEnsemble lazy expand cache', () => {
+  it('does not call expandNode again on collapse then re-expand', async () => {
+    const adapter = new CountingSampleAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+    expect(adapter.expandCalls).toBe(1);
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(false);
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+    expect(adapter.expandCalls).toBe(1);
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
   });
 });
 
