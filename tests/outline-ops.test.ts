@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyDiff,
+  clipSubtree,
+  clipToText,
+  cycleStatus,
+  diffOutlines,
+  insertClip,
+  parseIndentedText,
   indent,
   insertSibling,
   mergeIntoPrev,
@@ -11,7 +17,7 @@ import {
   setText,
   toggleCollapse,
 } from '@/outline/ops';
-import { childrenOf, descendantIds, visibleRows } from '@/outline/tree';
+import { childrenOf, descendantIds, searchRows, visibleRows } from '@/outline/tree';
 import type { OutlineLine } from '@/types/outline';
 
 const CTX = { author: 'nathan', makeId: () => 'NEW', now: () => 1000 };
@@ -190,5 +196,195 @@ describe('diffs are wire-shaped and minimal', () => {
         expect(Number.isFinite(l.order)).toBe(true);
       }
     }
+  });
+});
+
+describe('diffOutlines (the shape undo travels in)', () => {
+  it('emits nothing for an unchanged outline', () => {
+    expect(diffOutlines(TREE, TREE)).toEqual({ upsert: [], remove: [] });
+  });
+
+  it('sends only the lines that actually changed', () => {
+    const edited = applyDiff(TREE, setText(TREE, 'a1', 'changed'));
+    const d = diffOutlines(TREE, edited);
+    expect(d.upsert.map((l) => l.id)).toEqual(['a1']);
+    expect(d.remove).toEqual([]);
+  });
+
+  it('removes lines that the target no longer has', () => {
+    const pruned = applyDiff(TREE, removeSubtree(TREE, 'a'));
+    const d = diffOutlines(TREE, pruned);
+    expect(d.remove.sort()).toEqual(['a', 'a1', 'a2']);
+  });
+
+  it('round-trips an edit: applying the reverse diff restores the original', () => {
+    const edited = applyDiff(TREE, indent(TREE, 'a2'));
+    const back = applyDiff(edited, diffOutlines(edited, TREE));
+    expect(shape(back)).toEqual(shape(TREE));
+  });
+
+  it('notices a collapse, which an order-only comparison would miss', () => {
+    const collapsed = applyDiff(TREE, toggleCollapse(TREE, 'a'));
+    expect(diffOutlines(TREE, collapsed).upsert.map((l) => l.id)).toEqual(['a']);
+  });
+});
+
+describe('cycleStatus', () => {
+  it('steps the moon phases and wraps', () => {
+    let lines = TREE;
+    const seen: (string | undefined)[] = [];
+    for (let i = 0; i < 7; i += 1) {
+      lines = applyDiff(lines, cycleStatus(lines, 'a1'));
+      seen.push(lines.find((l) => l.id === 'a1')?.status);
+    }
+    expect(seen).toEqual(['crescent', 'quarter', 'gibbous', 'full', 'done', 'new', 'crescent']);
+  });
+});
+
+describe('clipboard', () => {
+  it('clips a subtree with relative depth', () => {
+    expect(clipSubtree(TREE, 'a')).toEqual([
+      { depth: 0, text: 'a' },
+      { depth: 1, text: 'a1' },
+      { depth: 1, text: 'a2' },
+    ]);
+  });
+
+  it('renders indented text that other apps can read', () => {
+    expect(clipToText(clipSubtree(TREE, 'a'))).toBe('a\n  a1\n  a2');
+  });
+
+  it('parses indented text back into depths', () => {
+    expect(parseIndentedText('one\n  two\n  three\n    four')).toEqual([
+      { depth: 0, text: 'one' },
+      { depth: 1, text: 'two' },
+      { depth: 1, text: 'three' },
+      { depth: 2, text: 'four' },
+    ]);
+  });
+
+  it('gives one level per indent step, whatever the source used', () => {
+    // Distinct indent WIDTHS become consecutive depths, so a 4-space document
+    // and a tab document both nest one level per step.
+    expect(parseIndentedText('a\n    b\n        c').map((c) => c.depth)).toEqual([0, 1, 2]);
+    expect(parseIndentedText('a\n\tb\n\t\tc').map((c) => c.depth)).toEqual([0, 1, 2]);
+    expect(parseIndentedText('- a\n- b').map((c) => c.depth)).toEqual([0, 0]);
+  });
+
+  it('ignores blank lines and normalises a block copied mid-document', () => {
+    expect(parseIndentedText('\n    alpha\n\n      beta\n')).toEqual([
+      { depth: 0, text: 'alpha' },
+      { depth: 1, text: 'beta' },
+    ]);
+  });
+
+  it('pastes a clip after a leaf, preserving nesting', () => {
+    let n = 0;
+    const ctx = { author: 'nathan', makeId: () => `P${(n += 1)}`, now: () => 5 };
+    const clip = parseIndentedText('one\n  two');
+    const d = insertClip(TREE, 'a1', clip, ctx);
+    const next = applyDiff(TREE, d);
+    expect(shape(next)).toEqual(['a', '  a1', '  P1', '    P2', '  a2', 'b']);
+    expect(d.firstId).toBe('P1');
+  });
+
+  it('pastes as first child when the anchor subtree is open', () => {
+    let n = 0;
+    const ctx = { author: 'nathan', makeId: () => `P${(n += 1)}`, now: () => 5 };
+    const next = applyDiff(TREE, insertClip(TREE, 'a', parseIndentedText('x'), ctx));
+    expect(shape(next)).toEqual(['a', '  P1', '  a1', '  a2', 'b']);
+  });
+
+  it('a cut then paste elsewhere preserves the subtree shape', () => {
+    let n = 0;
+    const ctx = { author: 'nathan', makeId: () => `P${(n += 1)}`, now: () => 5 };
+    const clip = clipSubtree(TREE, 'a');
+    const cut = applyDiff(TREE, removeSubtree(TREE, 'a'));
+    const pasted = applyDiff(cut, insertClip(cut, 'b', clip, ctx));
+    expect(shape(pasted)).toEqual(['b', 'P1', '  P2', '  P3']);
+  });
+});
+
+describe('searchRows keeps the line being edited', () => {
+  const SEARCHABLE: OutlineLine[] = [
+    line('root', null, 1, 'alpha parent'),
+    line('hit', 'root', 1, 'alpha match'),
+    line('miss', 'root', 2, 'nothing here'),
+    line('fresh', 'root', 3, ''),
+  ];
+
+  it('filters to matches and their ancestors', () => {
+    const { rows, matched } = searchRows(SEARCHABLE, 'alpha');
+    expect(rows.map((r) => r.line.id)).toEqual(['root', 'hit']);
+    expect([...matched].sort()).toEqual(['hit', 'root']);
+  });
+
+  it('keeps a focused empty line that matches nothing', () => {
+    // Otherwise a line created under an active filter is invisible, focus stays
+    // on the previous row, and the next keystroke overwrites it.
+    const { rows } = searchRows(SEARCHABLE, 'alpha', null, 'fresh');
+    expect(rows.map((r) => r.line.id)).toEqual(['root', 'hit', 'fresh']);
+  });
+
+  it('ignores a focus id that no longer exists', () => {
+    const { rows } = searchRows(SEARCHABLE, 'alpha', null, 'deleted');
+    expect(rows.map((r) => r.line.id)).toEqual(['root', 'hit']);
+  });
+});
+
+describe('writes stay small (the backend rewrites the whole file per op)', () => {
+  /** 60 root siblings — the live outline has 43. */
+  const WIDE: OutlineLine[] = Array.from({ length: 60 }, (_, i) =>
+    line(`w${i}`, null, i + 1, `w${i}`),
+  );
+
+  it('inserting among many siblings writes ONE line, not the whole list', () => {
+    const d = insertSibling(WIDE, 'w0', CTX);
+    expect(d.upsert).toHaveLength(1);
+    expect(d.upsert[0].id).toBe('NEW');
+  });
+
+  it('the inserted line still lands in the right place', () => {
+    const next = applyDiff(WIDE, insertSibling(WIDE, 'w0', CTX));
+    expect(childrenOf(next, null).slice(0, 3).map((l) => l.id)).toEqual(['w0', 'NEW', 'w1']);
+  });
+
+  it('moving writes one line', () => {
+    const d = moveNode(WIDE, 'w10', 1);
+    expect(d.upsert).toHaveLength(1);
+    const next = applyDiff(WIDE, d);
+    expect(childrenOf(next, null).slice(9, 12).map((l) => l.id)).toEqual(['w9', 'w11', 'w10']);
+  });
+
+  it('indent and outdent write one line each', () => {
+    expect(indent(WIDE, 'w5').upsert).toHaveLength(1);
+    const nested = applyDiff(WIDE, indent(WIDE, 'w5'));
+    expect(outdent(nested, 'w5').upsert).toHaveLength(1);
+  });
+
+  it('repeated inserts at the same spot keep their order', () => {
+    let lines: OutlineLine[] = WIDE;
+    for (let i = 0; i < 12; i += 1) {
+      const ctx = { author: 'nathan', makeId: () => `N${i}`, now: () => 1 };
+      lines = applyDiff(lines, insertSibling(lines, 'w0', ctx));
+    }
+    const ids = childrenOf(lines, null).slice(0, 14).map((l) => l.id);
+    // Each new line lands directly after w0, so the newest is nearest to it.
+    expect(ids[0]).toBe('w0');
+    expect(ids[1]).toBe('N11');
+    expect(ids[12]).toBe('N0');
+    expect(ids[13]).toBe('w1');
+  });
+
+  it('falls back to renumbering when the gap between neighbours is exhausted', () => {
+    // Two siblings with no representable space between them.
+    const tight: OutlineLine[] = [
+      line('t1', null, 1, 't1'),
+      line('t2', null, 1 + 1e-12, 't2'),
+    ];
+    const d = insertSibling(tight, 't1', CTX);
+    expect(d.upsert.length).toBeGreaterThan(1); // renumbered rather than colliding
+    const next = applyDiff(tight, d);
+    expect(childrenOf(next, null).map((l) => l.id)).toEqual(['t1', 'NEW', 't2']);
   });
 });

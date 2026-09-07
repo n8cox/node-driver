@@ -36,6 +36,18 @@ export interface EnsembleAdapter {
 
   /** Write a structural change produced by the outline grammar. */
   applyOutlineDiff?(diff: OutlineDiff): Promise<OutlineWriteResult>;
+
+  /**
+   * Notify when the outline changed somewhere ELSE — another window, the
+   * Alignment app, a script. Returns an unsubscribe function.
+   *
+   * Without this the app silently shows a stale outline, which is the worst
+   * failure mode for a surface meant to be the primary one.
+   */
+  onOutlineChanged?(
+    listener: (rev: number) => void,
+    onStatus?: (connected: boolean) => void,
+  ): () => void;
 }
 
 /** An adapter that can serve AND write the outline projection. */

@@ -60,3 +60,63 @@ export function nextVisible(rows: readonly OutlineRow[], id: string): OutlineLin
   const i = rows.findIndex((r) => r.line.id === id);
   return i >= 0 && i < rows.length - 1 ? rows[i + 1].line : null;
 }
+
+/** Every ancestor id of `id`, nearest first. */
+export function ancestorIds(lines: readonly OutlineLine[], id: string): string[] {
+  const byId = new Map(lines.map((l) => [l.id, l]));
+  const out: string[] = [];
+  const seen = new Set<string>([id]);
+  let cur = byId.get(id)?.parentId ?? null;
+  while (cur && byId.has(cur) && !seen.has(cur)) {
+    out.push(cur);
+    seen.add(cur);
+    cur = byId.get(cur)?.parentId ?? null;
+  }
+  return out;
+}
+
+/**
+ * Rows matching `query`, each shown WITH its ancestors so a hit is never a line
+ * without context. Collapse is ignored while searching — a fold must not hide a
+ * result — and the matched lines are reported so the view can mark them.
+ */
+export function searchRows(
+  lines: readonly OutlineLine[],
+  query: string,
+  rootId: string | null = null,
+  alwaysKeep: string | null = null,
+): { rows: OutlineRow[]; matched: Set<string> } {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return { rows: visibleRows(lines, rootId), matched: new Set() };
+
+  const matched = new Set<string>();
+  for (const line of lines) {
+    // `?? ''` is not decoration: the live outline contains lines with no text.
+    if ((line.text ?? '').toLowerCase().includes(needle)) matched.add(line.id);
+  }
+
+  const keep = new Set<string>(matched);
+  for (const id of matched) for (const a of ancestorIds(lines, id)) keep.add(a);
+
+  // A line the user is EDITING must never be filtered away. A new line is empty,
+  // so it matches nothing — hiding it left the caret on the previous row, and
+  // the next keystroke overwrote a line the user never meant to touch.
+  if (alwaysKeep && lines.some((l) => l.id === alwaysKeep)) {
+    keep.add(alwaysKeep);
+    for (const a of ancestorIds(lines, alwaysKeep)) keep.add(a);
+  }
+
+  const rows: OutlineRow[] = [];
+  const seen = new Set<string>();
+  const walk = (parentId: string | null, depth: number) => {
+    for (const line of childrenOf(lines, parentId)) {
+      if (!keep.has(line.id) || seen.has(line.id)) continue;
+      seen.add(line.id);
+      rows.push({ line, depth, hasChildren: hasChildren(lines, line.id) });
+      walk(line.id, depth + 1);
+    }
+  };
+  walk(rootId, 0);
+
+  return { rows, matched };
+}

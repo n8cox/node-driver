@@ -1,13 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { IdentityStrip } from '@/components/IdentityStrip';
 import { OutlineCanvas } from '@/components/OutlineCanvas';
 import { Roster } from '@/components/Roster';
-import { createAdapter } from '@/config/adapter';
+import { resolveAdapter, type AdapterSelection } from '@/config/adapter';
 import { supportsOutline } from '@/adapters/EnsembleAdapter';
 import { useEnsemble } from '@/hooks/useEnsemble';
 import { useKeyboardRefresh } from '@/hooks/useKeyboardRefresh';
 import { useOutline } from '@/hooks/useOutline';
 import { countMainDriving } from '@/lib/rosterSummary';
+import { SampleAdapter } from '@/adapters/SampleAdapter';
 
 /**
  * Two projections of ONE node space (Nathan's design law, 2026-07-01):
@@ -18,7 +19,38 @@ import { countMainDriving } from '@/lib/rosterSummary';
 type Projection = 'outline' | 'roster';
 
 export function App() {
-  const adapter = useMemo(() => createAdapter(), []);
+  const [selection, setSelection] = useState<AdapterSelection | null>(null);
+
+  // Connect on open: use a live backend when one answers, demo data when not,
+  // and say which. A desktop app that opens onto an error is not a primary
+  // interface.
+  useEffect(() => {
+    let cancelled = false;
+    void resolveAdapter().then((resolved) => {
+      if (!cancelled) setSelection(resolved);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!selection) return <Connecting />;
+  return <Workspace key={selection.label} selection={selection} />;
+}
+
+function Connecting() {
+  return (
+    <div className="app">
+      <IdentityStrip identity={null} loading onRefresh={() => {}} source="connecting…" />
+      <main className="main">
+        <div className="outline-empty">Looking for a live ensemble…</div>
+      </main>
+    </div>
+  );
+}
+
+function Workspace({ selection }: { selection: AdapterSelection }) {
+  const adapter = selection.adapter;
   const editable = useMemo(() => supportsOutline(adapter), [adapter]);
   const [projection, setProjection] = useState<Projection>(editable ? 'outline' : 'roster');
 
@@ -49,6 +81,8 @@ export function App() {
         identity={identity}
         loading={loading}
         drivingCount={drivingCount}
+        source={selection.label}
+        fellBack={selection.fellBack}
         onRefresh={() => {
           void refresh();
           void outline.refresh();
@@ -69,10 +103,17 @@ export function App() {
         ))}
         <span className="projection-hint">
           {projection === 'outline'
-            ? 'Enter: new line · Tab / ⇧Tab: indent · ⌥⇧↑↓: move'
+            ? 'Enter: new line · Tab/⇧Tab: indent · ⌥⇧↑↓: move · ⌘Z: undo · ⌘X/C/V: subtree'
             : '↑↓: move · Enter: expand · R: refresh'}
         </span>
       </nav>
+
+      {selection.fellBack && (
+        <div className="outline-dropped" role="status">
+          No live ensemble answered — showing demo data. Start the backend and press{' '}
+          <strong>R</strong> to reconnect.
+        </div>
+      )}
 
       {error && projection === 'roster' && (
         <div className="error-banner" role="alert">
@@ -104,10 +145,13 @@ export function App() {
       </main>
 
       <footer className="footer">
-        <span>Machine Intelligence Ensembles — Node Driver v0.2</span>
+        <span>Machine Intelligence Ensembles — Node Driver v0.3</span>
         <span className="footer-sep">·</span>
         <span>Outline + roster: two projections of one node space</span>
       </footer>
     </div>
   );
 }
+
+/** Re-exported so tests can construct the offline app directly. */
+export { SampleAdapter };

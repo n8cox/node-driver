@@ -1,4 +1,5 @@
 import type { BodyState, DriverNode, EnsembleIdentity, NodeRole } from '@/types/ensemble';
+import type { Correlation, OutlineLine } from '@/types/outline';
 
 /** roleKind values from Alignment main-drivers roster. */
 export type AlignmentRoleKind = 'human' | 'hemisphere' | 'connection' | 'bot';
@@ -157,4 +158,55 @@ export function extractMainDrivers(
   if (Array.isArray(payload)) return payload;
   if (payload && Array.isArray(payload.drivers)) return payload.drivers;
   return [];
+}
+
+/**
+ * Coerce one raw outline line into a well-formed `OutlineLine`.
+ *
+ * The live outline is years of accumulated writes from many tools, and it is
+ * NOT uniform: lines exist with no `text`, no `order` and no `author`. Every
+ * consumer downstream — search, sorting, the clipboard — would otherwise have to
+ * guard, and the first one that forgot crashed the whole view on a `.toLowerCase()`
+ * of undefined. Normalising once at the boundary is the fix; the UI may then
+ * trust its own types.
+ */
+export function normalizeOutlineLine(raw: unknown, index: number): OutlineLine | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const line = raw as Record<string, unknown>;
+  if (typeof line.id !== 'string' || line.id === '') return null;
+
+  return {
+    ...line,
+    id: line.id,
+    parentId: typeof line.parentId === 'string' && line.parentId ? line.parentId : null,
+    order: typeof line.order === 'number' && Number.isFinite(line.order) ? line.order : index + 1,
+    text: typeof line.text === 'string' ? line.text : '',
+    author: typeof line.author === 'string' && line.author ? line.author : 'unknown',
+    ...(typeof line.collapsed === 'boolean' ? { collapsed: line.collapsed } : {}),
+    ...(typeof line.status === 'string' ? { status: line.status as OutlineLine['status'] } : {}),
+  } as OutlineLine;
+}
+
+/** Normalise a whole outline, dropping entries too malformed to place. */
+export function normalizeOutlineLines(raw: unknown): OutlineLine[] {
+  if (!Array.isArray(raw)) return [];
+  const out: OutlineLine[] = [];
+  raw.forEach((entry, i) => {
+    const line = normalizeOutlineLine(entry, i);
+    if (line) out.push(line);
+  });
+  return out;
+}
+
+/** Keep only correlations that name both ends. */
+export function normalizeCorrelations(raw: unknown): Correlation[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(
+    (c): c is Correlation =>
+      !!c &&
+      typeof c === 'object' &&
+      typeof (c as Correlation).id === 'string' &&
+      typeof (c as Correlation).from === 'string' &&
+      typeof (c as Correlation).to === 'string',
+  );
 }

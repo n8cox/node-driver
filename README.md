@@ -62,6 +62,16 @@ npm run dist:mac:dmg
 - **Outliner grammar** — `Enter` new line · `Tab`/`⇧Tab` indent/outdent · `⌥⇧↑↓` reorder ·
   `Backspace` on an empty line deletes and promotes its children · `Backspace` at line start merges
   up · click the chevron to fold
+- **Undo / redo** — `⌘Z` / `⌘⇧Z` across every structural edit, up to 100 steps
+- **Subtree clipboard** — `⌘C`/`⌘X`/`⌘V` act on the bullet and its subtree when no text is
+  selected, and copy out as indented plain text. Pasting a list from any app becomes bullets
+- **Search** — filter the whole outline; matches keep their ancestors so a hit is never contextless
+- **Zoom** — double-click a bullet to focus its subtree, `Esc` to come back
+- **Status cycle** — click a bullet to step it through the moon phases
+- **Live** — the outline follows changes made anywhere else; the badge reports the real socket
+  state rather than assuming it
+- **Connects on open** — uses a live ensemble when one answers, demo data when none does, and
+  says which
 - **Optimistic edits** — typing never waits on the network, and a failed write rolls back rather
   than leaving a phantom edit on screen
 - **Full-viewport dark dense tool UI** — identity strip + driver roster

@@ -6,6 +6,10 @@ interface IdentityStripProps {
   loading: boolean;
   drivingCount?: number;
   onRefresh: () => void;
+  /** Where the data is coming from, e.g. "live · 127.0.0.1:3001" or "demo data". */
+  source?: string;
+  /** True when a live backend was wanted but unreachable. */
+  fellBack?: boolean;
 }
 
 export function IdentityStrip({
@@ -13,6 +17,8 @@ export function IdentityStrip({
   loading,
   drivingCount = 0,
   onRefresh,
+  source,
+  fellBack = false,
 }: IdentityStripProps) {
   const adapterKind = getAdapterKind();
 
@@ -40,8 +46,15 @@ export function IdentityStrip({
       </div>
 
       <div className="identity-actions">
-        <span className="adapter-badge" title="Active data adapter">
-          {adapterKind} adapter
+        <span
+          className={`adapter-badge${fellBack ? ' adapter-badge-fallback' : ''}`}
+          title={
+            fellBack
+              ? 'No live backend answered — showing demo data'
+              : 'Where roster and outline data come from'
+          }
+        >
+          {source ?? `${adapterKind} adapter`}
         </span>
         <button
           type="button"

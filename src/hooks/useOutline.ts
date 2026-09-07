@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { EnsembleAdapter } from '@/adapters/EnsembleAdapter';
 import { supportsOutline } from '@/adapters/EnsembleAdapter';
-import { applyDiff } from '@/outline/ops';
+import { applyDiff, diffOutlines } from '@/outline/ops';
 import { visibleRows } from '@/outline/tree';
 import type { OutlineDiff, OutlineLine } from '@/types/outline';
 
@@ -14,6 +14,13 @@ import type { OutlineDiff, OutlineLine } from '@/types/outline';
  * rare and go through immediately; text is the only high-frequency edit.
  */
 export const TEXT_FLUSH_MS = 400;
+
+/**
+ * How many structural steps can be taken back. Snapshots hold shared line
+ * objects, so the cost is one array of references per step, not a copy of the
+ * outline.
+ */
+export const UNDO_DEPTH = 100;
 
 export interface UseOutlineResult {
   lines: OutlineLine[];
@@ -31,6 +38,13 @@ export interface UseOutlineResult {
   /** Persist any pending text now. */
   flushText: () => Promise<void>;
   refresh: () => Promise<void>;
+  /** Structural undo — the pain Nathan named: fast deletes with no way back. */
+  undo: () => Promise<void>;
+  redo: () => Promise<void>;
+  canUndo: boolean;
+  canRedo: boolean;
+  /** True when another writer changed the outline and this view caught up. */
+  liveConnected: boolean;
 }
 
 /**
@@ -48,6 +62,12 @@ export function useOutline(adapter: EnsembleAdapter): UseOutlineResult {
   const [error, setError] = useState<string | null>(null);
   const [dropped, setDropped] = useState<string[] | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [undoDepth, setUndoDepth] = useState(0);
+  const [redoDepth, setRedoDepth] = useState(0);
+  const [liveConnected, setLiveConnected] = useState(false);
+
+  const undoStack = useRef<OutlineLine[][]>([]);
+  const redoStack = useRef<OutlineLine[][]>([]);
 
   // Guards a late response from a superseded load overwriting fresher state.
   const loadSeq = useRef(0);
@@ -143,6 +163,14 @@ export function useOutline(adapter: EnsembleAdapter): UseOutlineResult {
       // the rollback empty and a failed write wiping the outline instead of
       // restoring it.
       const rollback = linesRef.current;
+
+      // The same snapshot is the undo step. Taking it here means undo covers
+      // every structural op without each op having to know about undo.
+      undoStack.current.push(rollback);
+      if (undoStack.current.length > UNDO_DEPTH) undoStack.current.shift();
+      redoStack.current = [];
+      setUndoDepth(undoStack.current.length);
+      setRedoDepth(0);
       setLines((prev) => applyDiff(prev, diff));
       if (focus !== undefined) setFocusId(focus);
       setDropped(null);
@@ -151,6 +179,60 @@ export function useOutline(adapter: EnsembleAdapter): UseOutlineResult {
     },
     [adapter, flushText, persist],
   );
+
+  /** Restore a snapshot by differencing it against the current outline. */
+  const restore = useCallback(
+    async (target: OutlineLine[]) => {
+      const current = linesRef.current;
+      const diff = diffOutlines(current, target);
+      if (diff.upsert.length === 0 && diff.remove.length === 0) return;
+      setLines(target);
+      await persist(diff, current);
+    },
+    [persist],
+  );
+
+  const undo = useCallback(async () => {
+    await flushText();
+    const target = undoStack.current.pop();
+    if (!target) return;
+    redoStack.current.push(linesRef.current);
+    setUndoDepth(undoStack.current.length);
+    setRedoDepth(redoStack.current.length);
+    await restore(target);
+  }, [flushText, restore]);
+
+  const redo = useCallback(async () => {
+    await flushText();
+    const target = redoStack.current.pop();
+    if (!target) return;
+    undoStack.current.push(linesRef.current);
+    setUndoDepth(undoStack.current.length);
+    setRedoDepth(redoStack.current.length);
+    await restore(target);
+  }, [flushText, restore]);
+
+  /**
+   * Catch up when someone else writes — another window, the Alignment app, a
+   * script. Without this the primary surface quietly shows a stale outline.
+   */
+  useEffect(() => {
+    if (typeof adapter.onOutlineChanged !== 'function') return;
+    const unsubscribe = adapter.onOutlineChanged(
+      () => {
+        // Land our own pending text first, or catching up would discard it.
+        void flushText().then(() => refresh());
+      },
+      // Reported by the transport. A badge that says "live" because a method
+      // exists is exactly the instrument that agrees with you while the socket
+      // is dead and the outline quietly goes stale.
+      (connected) => setLiveConnected(connected),
+    );
+    return () => {
+      setLiveConnected(false);
+      unsubscribe();
+    };
+  }, [adapter, flushText, refresh]);
 
   // A pending edit must not be lost because the view went away.
   useEffect(
@@ -175,5 +257,10 @@ export function useOutline(adapter: EnsembleAdapter): UseOutlineResult {
     editText,
     flushText,
     refresh,
+    undo,
+    redo,
+    canUndo: undoDepth > 0,
+    canRedo: redoDepth > 0,
+    liveConnected,
   };
 }

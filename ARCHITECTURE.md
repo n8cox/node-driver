@@ -55,8 +55,32 @@ Writes are **optimistic**: the diff is applied locally, then persisted. A failed
 outline back to exactly its prior state — an edit that did not survive must not keep looking like
 it did. Lines the backend refuses are reported rather than silently dropped.
 
-Not yet built: cut/copy/paste of a subtree, structural undo/redo, drag-to-reorder, zoom-into-node,
-token chunking, and the extra-dimensional rendering of correlations.
+| `⌘Z` / `⌘⇧Z` | Undo / redo, 100 structural steps |
+| `⌘C` / `⌘X` / `⌘V` | Copy / cut / paste the bullet and its subtree (only with no text selected) |
+
+### Why writes stay small
+
+The backend rewrites the entire outline file on every op. Two consequences shape this code:
+
+- **Text is debounced.** Persisting each keystroke would cost one full rewrite per character.
+  Text coalesces after a pause and flushes before any structural change.
+- **Orders are sparse.** A new line takes the midpoint of the gap between its neighbours, so an
+  insert writes ONE line. Renumbering a sibling list to 1..n would rewrite every root line — 43 of
+  them on the live outline — for a single `Enter`. The renumber survives only as the fallback for
+  when a gap really has closed.
+
+Undo is a bounded snapshot stack; a restore is *differenced* against the current outline so it
+travels in the same `{ upsert, remove }` vocabulary and never rewrites untouched lines.
+
+### Data from the live outline is not uniform
+
+The outline is years of writes from many tools. It contains lines with no `text`, no `order` and no
+`author`. Everything is normalised at the adapter boundary (`normalizeOutlineLines`) so the UI can
+trust its own types — the first consumer that forgot to guard crashed the whole view on a
+`.toLowerCase()` of `undefined`.
+
+Not yet built: drag-to-reorder, token chunking, and the extra-dimensional rendering of correlations
+(they are carried in the snapshot, not yet drawn).
 
 ## Design laws
 

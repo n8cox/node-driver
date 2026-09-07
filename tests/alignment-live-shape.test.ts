@@ -12,7 +12,14 @@
  */
 import { describe, expect, it } from 'vitest';
 import { HttpAdapter } from '@/adapters/HttpAdapter';
-import { extractFacetEntries, extractMainDrivers, mapBodyState } from '@/adapters/alignmentMapper';
+import {
+  extractFacetEntries,
+  extractMainDrivers,
+  mapBodyState,
+  normalizeCorrelations,
+  normalizeOutlineLines,
+} from '@/adapters/alignmentMapper';
+import { searchRows } from '@/outline/tree';
 
 /** Verbatim capture: GET /api/ensemble/main-drivers */
 const LIVE_ROSTER = {
@@ -121,5 +128,60 @@ describe('live Alignment payload shapes', () => {
     const kids = await adapter.expandNode('bot-grok-bot');
     expect(kids).toHaveLength(3);
     expect(kids[0].name).toBe('mode');
+  });
+});
+
+describe('malformed lines from the real outline', () => {
+  // Captured shapes that exist in the live 2,989-line outline: 3 lines with no
+  // text, 7 with no order, 525 with no author. Search crashed the whole view on
+  // the first of these until the boundary normalised them.
+  const MESSY = [
+    { id: 'study-140-fm20-hysteresis', parentId: 'study-140' },
+    { id: 'no-author', parentId: null, order: 2, text: 'has text, no author' },
+    { id: 'bad-parent', parentId: 42, order: 3, text: 'numeric parent' },
+    { id: '', order: 4, text: 'no id at all' },
+    null,
+    'not an object',
+  ];
+
+  it('fills the gaps rather than dropping usable lines', () => {
+    const lines = normalizeOutlineLines(MESSY);
+    expect(lines.map((l) => l.id)).toEqual([
+      'study-140-fm20-hysteresis',
+      'no-author',
+      'bad-parent',
+    ]);
+    expect(lines[0].text).toBe('');
+    expect(lines[0].author).toBe('unknown');
+    expect(Number.isFinite(lines[0].order)).toBe(true);
+    expect(lines[2].parentId).toBeNull(); // a non-string parent is no parent
+  });
+
+  it('search survives a line with no text', () => {
+    const lines = normalizeOutlineLines(MESSY);
+    expect(() => searchRows(lines, 'text')).not.toThrow();
+    expect([...searchRows(lines, 'has text').matched]).toEqual(['no-author']);
+  });
+
+  it('keeps only correlations naming both ends', () => {
+    expect(
+      normalizeCorrelations([
+        { id: 'c1', from: 'a', to: 'b' },
+        { id: 'c2', from: 'a' },
+        null,
+      ]).map((c) => c.id),
+    ).toEqual(['c1']);
+  });
+
+  it('getOutline normalises what the adapter returns', async () => {
+    const adapter = new HttpAdapter({
+      baseUrl: '',
+      fetch: stubFetch({ rev: 7, lines: MESSY, correlations: 'nope' }),
+    });
+    const snapshot = await adapter.getOutline();
+    expect(snapshot.rev).toBe(7);
+    expect(snapshot.lines).toHaveLength(3);
+    expect(snapshot.correlations).toEqual([]);
+    expect(snapshot.lines.every((l) => typeof l.text === 'string')).toBe(true);
   });
 });
