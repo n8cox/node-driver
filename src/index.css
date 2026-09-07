@@ -53,6 +53,11 @@ body {
   overflow: hidden;
 }
 
+/* macOS Electron hiddenInset title bar — keep content clear of traffic lights */
+html.electron.platform-darwin .app {
+  padding-top: 28px;
+}
+
 /* Identity strip */
 .identity-strip {
   display: flex;
