@@ -33,6 +33,8 @@ release/mac/Node Driver.app         # Intel (when built on Intel Mac)
 
 **Install:** drag `Node Driver.app` into **Applications**.
 
+**First open (unsigned build):** macOS Gatekeeper blocks apps that are not signed with a Developer ID. Right-click `Node Driver.app` → **Open** → **Open** in the dialog. You only need to do this once; after that, double-click works normally. To ship signed builds, add a Developer ID certificate to electron-builder (not configured in this OSS repo).
+
 **Pin to Dock:** open the app once from Applications, then right-click its Dock icon → **Options → Keep in Dock**. One click launches Node Driver in a native window (not a browser tab, not Terminal).
 
 During development on macOS, run the UI inside Electron with hot reload:

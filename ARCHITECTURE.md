@@ -106,6 +106,16 @@ Expand (`+`) on a row with `hasChildren: true` calls `adapter.expandNode(id)` **
 - Vitest for smoke tests
 - MIT license
 
+## Desktop shell (macOS)
+
+Node Driver ships an optional **Electron** desktop shell for macOS. The packaged `Node Driver.app` loads the same Vite-built React UI inside a native window — no browser tab, no Terminal.
+
+- **Default data:** `SampleAdapter` works offline; no API keys or network required.
+- **No Alignment deps:** the shell does not import Alignment ceremony, private paths, or secrets.
+- **Packaging:** run `npm run dist:mac` on macOS to produce `release/mac*/Node Driver.app`. See [README.md](./README.md) for install, Gatekeeper first-open, and Dock pinning.
+
+The web dev path (`npm run dev`) remains the primary cross-platform workflow; the desktop shell is an additive delivery surface.
+
 ## Out of scope (v1)
 
 - Porting Alignment v2/v3 UI or ceremony

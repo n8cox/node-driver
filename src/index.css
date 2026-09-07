@@ -58,6 +58,31 @@ html.electron.platform-darwin .app {
   padding-top: 28px;
 }
 
+/* macOS Electron — draggable window chrome (hiddenInset has no native title bar) */
+html.electron.platform-darwin .app::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  -webkit-app-region: drag;
+  z-index: 100;
+  pointer-events: auto;
+}
+
+html.electron.platform-darwin .identity-strip {
+  -webkit-app-region: drag;
+}
+
+html.electron.platform-darwin .identity-actions,
+html.electron.platform-darwin .refresh-btn,
+html.electron.platform-darwin .expand-btn,
+html.electron.platform-darwin .driver-row,
+html.electron.platform-darwin .main {
+  -webkit-app-region: no-drag;
+}
+
 /* Identity strip */
 .identity-strip {
   display: flex;
