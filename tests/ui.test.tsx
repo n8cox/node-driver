@@ -61,6 +61,15 @@ describe('flattenVisibleNodes', () => {
   });
 });
 
+describe('ROLE_GLYPH', () => {
+  it('uses Meridian-locked glyph characters', () => {
+    expect(ROLE_GLYPH.human).toBe('☉');
+    expect(ROLE_GLYPH.hemisphere).toBe('◐');
+    expect(ROLE_GLYPH.connection).toBe('⎔');
+    expect(ROLE_GLYPH.motor).toBe('⚙');
+  });
+});
+
 describe('BodyStateLine', () => {
   it('omits driving from meta text — badge and row styling own the glance', () => {
     render(
@@ -134,7 +143,7 @@ describe('DriverNodeRow', () => {
     expect(document.querySelector('.driver-row.is-activity')).toBeTruthy();
   });
 
-  it('renders role glyph and label on the badge', () => {
+  it('renders glyph-only role indicator with accessible role name', () => {
     render(
       <DriverNodeRow
         node={MAIN_DRIVERS[4]}
@@ -145,9 +154,11 @@ describe('DriverNodeRow', () => {
       />,
     );
 
-    const badge = document.querySelector('.role-badge.role-motor');
-    expect(badge?.textContent).toContain(ROLE_GLYPH.motor);
-    expect(badge?.textContent).toContain(ROLE_LABEL.motor);
+    const badge = document.querySelector('.role-glyph-badge.role-motor');
+    expect(badge?.textContent).toBe(ROLE_GLYPH.motor);
+    expect(badge?.getAttribute('aria-label')).toBe(`Role: ${ROLE_LABEL.motor}`);
+    expect(badge?.getAttribute('title')).toBe(ROLE_LABEL.motor);
+    expect(badge?.textContent).not.toContain(ROLE_LABEL.motor);
   });
 
   it('toggles expand when clicking the row body outside the chevron', () => {

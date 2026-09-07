@@ -508,41 +508,35 @@ html.electron.platform-darwin .main {
   min-width: 0;
 }
 
-.role-badge {
+.role-glyph-badge {
   font-family: var(--font-mono);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 1px 5px;
+  font-size: 11px;
+  line-height: 1;
+  padding: 1px 4px;
   border-radius: 2px;
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  justify-content: center;
+  min-width: 18px;
 }
 
-.role-glyph {
-  font-size: 8px;
-  line-height: 1;
-  opacity: 0.9;
-}
-
-.role-badge.role-human {
+.role-glyph-badge.role-human {
   color: var(--role-human);
   background: rgba(251, 191, 36, 0.12);
 }
 
-.role-badge.role-hemisphere {
+.role-glyph-badge.role-hemisphere {
   color: var(--role-hemisphere);
   background: rgba(167, 139, 250, 0.12);
 }
 
-.role-badge.role-connection {
+.role-glyph-badge.role-connection {
   color: var(--role-connection);
   background: rgba(52, 211, 153, 0.12);
 }
 
-.role-badge.role-motor {
+.role-glyph-badge.role-motor {
   color: var(--role-motor);
   background: rgba(248, 113, 113, 0.12);
 }

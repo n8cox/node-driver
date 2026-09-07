@@ -97,11 +97,12 @@ export function DriverNodeRow({
                 driving
               </span>
             )}
-            <span className={`role-badge ${roleClass(node.role)}`}>
-              <span className="role-glyph" aria-hidden="true">
-                {ROLE_GLYPH[node.role]}
-              </span>
-              {ROLE_LABEL[node.role]}
+            <span
+              className={`role-glyph-badge ${roleClass(node.role)}`}
+              title={ROLE_LABEL[node.role]}
+              aria-label={`Role: ${ROLE_LABEL[node.role]}`}
+            >
+              {ROLE_GLYPH[node.role]}
             </span>
           </div>
           <BodyStateLine bodyState={node.bodyState} compact={isActivity} />
