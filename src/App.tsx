@@ -15,6 +15,7 @@ export function App() {
     error,
     expandedIds,
     expandingIds,
+    expandErrors,
     toggleExpand,
     refresh,
   } = useEnsemble(adapter);
@@ -52,6 +53,7 @@ export function App() {
           loading={loading}
           expandedIds={expandedIds}
           expandingIds={expandingIds}
+          expandErrors={expandErrors}
           onToggleExpand={(id, has) => void toggleExpand(id, has)}
         />
       </main>

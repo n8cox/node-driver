@@ -192,10 +192,71 @@ describe('useEnsemble error handling', () => {
       await result.current.toggleExpand('hemisphere-claude', true);
     });
 
-    expect(result.current.error).toBe('Expand failed');
+    expect(result.current.error).toBeNull();
+    expect(result.current.expandErrors.get('hemisphere-claude')).toBe('Expand failed');
     expect(result.current.drivers.length).toBe(driverCount);
     expect(result.current.expandingIds.has('hemisphere-claude')).toBe(false);
     expect(result.current.expandedIds.has('hemisphere-claude')).toBe(false);
+  });
+
+  it('does not clear other drivers when one expand fails', async () => {
+    class SelectiveExpandFailAdapter extends SampleAdapter {
+      override async expandNode(nodeId: string): Promise<DriverNode[]> {
+        if (nodeId === 'hemisphere-claude') throw new Error('Claude expand failed');
+        return super.expandNode(nodeId);
+      }
+    }
+
+    const adapter = new SelectiveExpandFailAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const initialIds = result.current.drivers.map((d) => d.id);
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+
+    expect(result.current.drivers.map((d) => d.id)).toEqual(initialIds);
+    expect(result.current.expandErrors.get('hemisphere-claude')).toBe('Claude expand failed');
+    expect(result.current.expandErrors.has('motor-watchdog')).toBe(false);
+
+    await act(async () => {
+      await result.current.toggleExpand('motor-watchdog', true);
+    });
+
+    expect(result.current.expandedIds.has('motor-watchdog')).toBe(true);
+    expect(result.current.expandErrors.has('motor-watchdog')).toBe(false);
+  });
+
+  it('clears per-row expand error on collapse and successful re-expand', async () => {
+    let failExpand = true;
+
+    class FlakyExpandAdapter extends SampleAdapter {
+      override async expandNode(nodeId: string): Promise<DriverNode[]> {
+        if (failExpand) throw new Error('Expand failed');
+        return super.expandNode(nodeId);
+      }
+    }
+
+    const adapter = new FlakyExpandAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+    expect(result.current.expandErrors.get('hemisphere-claude')).toBe('Expand failed');
+
+    failExpand = false;
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+
+    expect(result.current.expandErrors.has('hemisphere-claude')).toBe(false);
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
   });
 });
 

@@ -105,6 +105,8 @@ describe('BodyStateLine', () => {
   });
 });
 
+const EMPTY_EXPAND_ERRORS = new Map<string, string>();
+
 describe('DriverNodeRow', () => {
   it('shows driving badge when bodyState.driving is true', () => {
     render(
@@ -113,6 +115,7 @@ describe('DriverNodeRow', () => {
         depth={0}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -135,6 +138,7 @@ describe('DriverNodeRow', () => {
         depth={1}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -150,6 +154,7 @@ describe('DriverNodeRow', () => {
         depth={0}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -169,6 +174,7 @@ describe('DriverNodeRow', () => {
         depth={0}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={onToggleExpand}
       />,
     );
@@ -199,6 +205,7 @@ describe('DriverNodeRow', () => {
         depth={0}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -221,12 +228,33 @@ describe('DriverNodeRow', () => {
         depth={0}
         expandedIds={new Set(['motor-watchdog'])}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
 
     expect(screen.getByText('No activity sub-nodes')).toBeTruthy();
     expect(document.querySelector('.expand-btn.expand-btn--expanded')).toBeTruthy();
+  });
+
+  it('shows per-row expand error without affecting sibling rows', () => {
+    const expandErrors = new Map([['hemisphere-claude', 'Expand failed']]);
+
+    render(
+      <DriverNodeRow
+        node={MAIN_DRIVERS[1]}
+        depth={0}
+        expandedIds={new Set()}
+        expandingIds={new Set()}
+        expandErrors={expandErrors}
+        onToggleExpand={() => {}}
+      />,
+    );
+
+    const errorEl = screen.getByRole('alert');
+    expect(errorEl.textContent).toBe('Expand failed');
+    expect(errorEl.className).toContain('activity-expand-error');
+    expect(screen.queryByText('No activity sub-nodes')).toBeNull();
   });
 });
 
@@ -238,6 +266,7 @@ describe('Roster UI states', () => {
         loading
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -253,6 +282,7 @@ describe('Roster UI states', () => {
         loading={false}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -267,6 +297,7 @@ describe('Roster UI states', () => {
         loading={false}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={() => {}}
       />,
     );
@@ -282,6 +313,7 @@ describe('Roster UI states', () => {
         loading={false}
         expandedIds={new Set()}
         expandingIds={new Set()}
+        expandErrors={EMPTY_EXPAND_ERRORS}
         onToggleExpand={onToggleExpand}
       />,
     );

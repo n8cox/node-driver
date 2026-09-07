@@ -9,6 +9,7 @@ interface DriverNodeRowProps {
   depth: number;
   expandedIds: ReadonlySet<string>;
   expandingIds: ReadonlySet<string>;
+  expandErrors: ReadonlyMap<string, string>;
   onToggleExpand: (nodeId: string, hasChildren: boolean) => void;
 }
 
@@ -17,10 +18,12 @@ export function DriverNodeRow({
   depth,
   expandedIds,
   expandingIds,
+  expandErrors,
   onToggleExpand,
 }: DriverNodeRowProps) {
   const isExpanded = expandedIds.has(node.id);
   const isExpanding = expandingIds.has(node.id);
+  const expandError = expandErrors.get(node.id);
   const canToggleActivity = nodeHasExpandableChildren(node, expandedIds);
   const showChildRows = isExpanded && Boolean(node.children?.length);
   const showEmptyActivity =
@@ -121,6 +124,16 @@ export function DriverNodeRow({
         </div>
       )}
 
+      {expandError && (
+        <div
+          className="activity-expand-error"
+          style={{ paddingLeft: `${32 + depth * 20}px` }}
+          role="alert"
+        >
+          {expandError}
+        </div>
+      )}
+
       {showChildRows &&
         node.children!.map((child) => (
           <DriverNodeRow
@@ -129,6 +142,7 @@ export function DriverNodeRow({
             depth={depth + 1}
             expandedIds={expandedIds}
             expandingIds={expandingIds}
+            expandErrors={expandErrors}
             onToggleExpand={onToggleExpand}
           />
         ))}
