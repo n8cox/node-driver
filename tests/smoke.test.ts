@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { HttpAdapter, HttpAdapterNotConfiguredError } from '@/adapters/HttpAdapter';
+import { HttpAdapter } from '@/adapters/HttpAdapter';
 import { SampleAdapter, MAIN_DRIVERS, CHILDREN, IDENTITY } from '@/adapters/SampleAdapter';
 import { useEnsemble } from '@/hooks/useEnsemble';
 import type { DriverNode, EnsembleIdentity } from '@/types/ensemble';
@@ -260,15 +260,11 @@ describe('useEnsemble error handling', () => {
   });
 });
 
-describe('HttpAdapter stub', () => {
-  it('throws HttpAdapterNotConfiguredError on getIdentity', async () => {
-    const adapter = new HttpAdapter({ baseUrl: 'http://localhost:8787' });
-    await expect(adapter.getIdentity()).rejects.toThrow(HttpAdapterNotConfiguredError);
-  });
-
-  it('throws on expandNode with encoded id', async () => {
-    const adapter = new HttpAdapter({ baseUrl: 'http://localhost:8787/' });
-    await expect(adapter.expandNode('hemisphere/claude')).rejects.toThrow(/stub/);
+describe('HttpAdapter', () => {
+  it('returns static identity without network', async () => {
+    const adapter = new HttpAdapter({ baseUrl: 'http://127.0.0.1:3001' });
+    const identity = await adapter.getIdentity();
+    expect(identity.id).toBe('alignment-local');
   });
 });
 

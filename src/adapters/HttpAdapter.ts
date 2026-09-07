@@ -1,55 +1,112 @@
 import type { EnsembleAdapter } from '@/adapters/EnsembleAdapter';
-import type { DriverNode, EnsembleIdentity } from '@/types/ensemble';
+import {
+  ALIGNMENT_LOCAL_IDENTITY,
+  extractFacetEntries,
+  mapFacetEntries,
+  mapMainDrivers,
+  type AlignmentFacetEntry,
+  type AlignmentMainDriver,
+} from '@/adapters/alignmentMapper';
+import type { DriverNode, EnsembleIdentity, NodeRole } from '@/types/ensemble';
 
 export interface HttpAdapterOptions {
-  /** Base URL of the ensemble HTTP API, e.g. https://localhost:8787 */
+  /** Base URL of the Alignment ensemble API, e.g. http://127.0.0.1:3001 */
   baseUrl: string;
-  /** Optional bearer token — not required for stub usage. */
+  /** Optional bearer token. */
   token?: string;
+  /** Injectable fetch for tests. */
+  fetch?: typeof fetch;
 }
 
 /**
- * HTTP adapter stub — defines the remote contract without requiring a live backend.
+ * HTTP adapter — fetches live roster data from Alignment ensemble API.
  *
- * Expected endpoints (not implemented here):
- *   GET  {baseUrl}/ensemble/identity
- *   GET  {baseUrl}/ensemble/drivers
- *   GET  {baseUrl}/ensemble/drivers/:id/children
+ * Endpoints:
+ *   GET  {baseUrl}/api/ensemble/main-drivers
+ *   GET  {baseUrl}/api/ensemble/main-drivers/:id/facet
+ *
+ * Identity is static until Alignment exposes a dedicated endpoint.
  */
 export class HttpAdapter implements EnsembleAdapter {
   private readonly baseUrl: string;
   private readonly token?: string;
+  private readonly fetchFn: typeof fetch;
+  private readonly parentRoles = new Map<string, NodeRole>();
 
   constructor(options: HttpAdapterOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, '');
     this.token = options.token;
+    this.fetchFn = options.fetch ?? fetch.bind(globalThis);
   }
 
   async getIdentity(): Promise<EnsembleIdentity> {
-    return this.notImplemented('getIdentity', `${this.baseUrl}/ensemble/identity`);
+    return { ...ALIGNMENT_LOCAL_IDENTITY };
   }
 
   async getMainDrivers(): Promise<DriverNode[]> {
-    return this.notImplemented('getMainDrivers', `${this.baseUrl}/ensemble/drivers`);
+    const raw = await this.request<AlignmentMainDriver[]>('/api/ensemble/main-drivers');
+    const drivers = mapMainDrivers(Array.isArray(raw) ? raw : []);
+    this.parentRoles.clear();
+    for (const driver of drivers) {
+      this.parentRoles.set(driver.id, driver.role);
+    }
+    return drivers.map(cloneDriverNode);
   }
 
   async expandNode(nodeId: string): Promise<DriverNode[]> {
-    return this.notImplemented(
-      'expandNode',
-      `${this.baseUrl}/ensemble/drivers/${encodeURIComponent(nodeId)}/children`,
-    );
+    const raw = await this.request<
+      AlignmentFacetEntry[] | { children?: AlignmentFacetEntry[] }
+    >(`/api/ensemble/main-drivers/${encodeURIComponent(nodeId)}/facet`);
+    const entries = extractFacetEntries(raw);
+    const parentRole = this.parentRoles.get(nodeId) ?? 'motor';
+    return mapFacetEntries(entries, parentRole).map(cloneDriverNode);
   }
 
-  private async notImplemented<T>(method: string, url: string): Promise<T> {
-    const authNote = this.token ? ' Bearer token is configured.' : '';
-    throw new HttpAdapterNotConfiguredError(
-      `HttpAdapter.${method} is a stub — no backend at ${url}.${authNote} ` +
-        'Use VITE_ADAPTER=sample or implement the HTTP endpoints.',
-    );
+  private async request<T>(path: string): Promise<T> {
+    const headers: Record<string, string> = { Accept: 'application/json' };
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    let response: Response;
+    try {
+      response = await this.fetchFn(`${this.baseUrl}${path}`, { headers });
+    } catch (cause) {
+      throw new HttpAdapterError(
+        `HttpAdapter request failed for ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,
+        { cause },
+      );
+    }
+
+    if (!response.ok) {
+      throw new HttpAdapterError(
+        `HttpAdapter received HTTP ${response.status} from ${this.baseUrl}${path}`,
+      );
+    }
+
+    return response.json() as Promise<T>;
   }
 }
 
-export class HttpAdapterNotConfiguredError extends Error {
+function cloneDriverNode(node: DriverNode): DriverNode {
+  return {
+    ...node,
+    bodyState: { ...node.bodyState },
+    ...(node.children !== undefined
+      ? { children: node.children.map(cloneDriverNode) }
+      : {}),
+  };
+}
+
+export class HttpAdapterError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'HttpAdapterError';
+  }
+}
+
+/** @deprecated Use HttpAdapterError — kept for existing imports. */
+export class HttpAdapterNotConfiguredError extends HttpAdapterError {
   constructor(message: string) {
     super(message);
     this.name = 'HttpAdapterNotConfiguredError';

@@ -110,18 +110,28 @@ Copy `.env.example` to `.env.local` (optional):
 # Default — demo data, no network
 VITE_ADAPTER=sample
 
-# Stub — throws until you implement the HTTP API (see ARCHITECTURE.md)
+# Live Alignment roster (Nathan local setup on :3001)
 # VITE_ADAPTER=http
-# VITE_HTTP_BASE_URL=http://localhost:8787
+# VITE_HTTP_BASE_URL=http://127.0.0.1:3001
 # VITE_HTTP_TOKEN=
 ```
+
+**Runtime override (Electron / baked builds):** set in DevTools console without rebuilding:
+
+```js
+localStorage.setItem('node-driver:adapter', 'http');
+localStorage.setItem('node-driver:http-base-url', 'http://127.0.0.1:3001');
+location.reload();
+```
+
+Use `sample` to revert to the demo ensemble.
 
 ## Adapters
 
 | Adapter | Status | Use |
 |---------|--------|-----|
-| `SampleAdapter` | **working** | Default demo ensemble |
-| `HttpAdapter` | **stub** | Remote ensemble API contract |
+| `SampleAdapter` | **working** | Default demo ensemble (OSS clone-and-run) |
+| `HttpAdapter` | **working** | Live Alignment roster at `/api/ensemble/main-drivers` |
 
 See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full adapter interface and Shared H seam.
 

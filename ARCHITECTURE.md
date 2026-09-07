@@ -50,17 +50,21 @@ interface EnsembleAdapter {
 
 Ships demo data. Used when `VITE_ADAPTER=sample` (default). No network required.
 
-### HttpAdapter (stub)
+### HttpAdapter
 
-Defines the remote contract for a future ensemble HTTP API:
+Fetches live roster data from an Alignment ensemble HTTP API:
 
 | Method | Path | Returns |
 |--------|------|---------|
-| GET | `/ensemble/identity` | `EnsembleIdentity` |
-| GET | `/ensemble/drivers` | `DriverNode[]` (main drivers) |
-| GET | `/ensemble/drivers/:id/children` | `DriverNode[]` (activity sub-nodes) |
+| *(static)* | — | `EnsembleIdentity` (until identity endpoint exists) |
+| GET | `/api/ensemble/main-drivers` | Alignment main driver JSON → mapped `DriverNode[]` |
+| GET | `/api/ensemble/main-drivers/:id/facet` | Facet children → mapped activity `DriverNode[]` |
 
-Set `VITE_ADAPTER=http` and optionally `VITE_HTTP_BASE_URL` / `VITE_HTTP_TOKEN`. The stub throws until a backend implements these endpoints. When wired, requests will send `Accept: application/json` and an optional `Authorization: Bearer` header from the configured token.
+Set `VITE_ADAPTER=http` and optionally `VITE_HTTP_BASE_URL` (default `http://127.0.0.1:3001`) / `VITE_HTTP_TOKEN`. Requests send `Accept: application/json` and an optional `Authorization: Bearer` header.
+
+Alignment JSON is mapped in `alignmentMapper.ts`: `roleKind: bot` → `motor`, flat state fields → `bodyState`, drivers sorted human → hemisphere → connection → motor.
+
+**Runtime override:** baked Electron builds can switch adapters via `localStorage` keys (`node-driver:adapter`, `node-driver:http-base-url`, `node-driver:http-token`) without rebuilding.
 
 ### Adapter response shapes
 
