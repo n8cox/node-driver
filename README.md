@@ -154,3 +154,4 @@ MIT — see [LICENSE](./LICENSE).
 ## Related
 
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — design laws, adapter contract, Shared H seam
+- [Pulse Board](./examples/pulse-board/) — MI build-lab exercise (0→ship status board)
