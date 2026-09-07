@@ -9,9 +9,18 @@ export interface AlignmentMainDriver {
   name: string;
   roleKind: AlignmentRoleKind;
   state: string;
-  engagement?: string;
+  /** Live API sends a number, or null when the driver reports no engagement. */
+  engagement?: string | number | null;
   driving?: boolean;
   activity?: string;
+  sources?: string[];
+}
+
+/** Envelope returned by GET /api/ensemble/main-drivers. */
+export interface AlignmentMainDriversResponse {
+  ts?: number;
+  primaryId?: string;
+  drivers?: AlignmentMainDriver[];
 }
 
 /** Single facet child from GET /api/ensemble/main-drivers/:id/facet. */
@@ -74,7 +83,7 @@ export function mapBodyState(raw: Pick<AlignmentMainDriver, 'state' | 'engagemen
     state: raw.state,
     activityLine: raw.activity ?? '',
   };
-  if (raw.engagement !== undefined && raw.engagement !== '') {
+  if (raw.engagement !== undefined && raw.engagement !== null && raw.engagement !== '') {
     body.engagement = String(raw.engagement);
   }
   if (raw.driving !== undefined) {
@@ -127,11 +136,25 @@ export function sortDriversByRole(drivers: DriverNode[]): DriverNode[] {
   return [...drivers].sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
 }
 
-/** Normalize facet response — array or { children: [...] }. */
+/** Normalize facet response — array, { subNodes: [...] } (live), or { children: [...] }. */
 export function extractFacetEntries(
-  payload: AlignmentFacetEntry[] | { children?: AlignmentFacetEntry[] } | null | undefined,
+  payload:
+    | AlignmentFacetEntry[]
+    | { subNodes?: AlignmentFacetEntry[]; children?: AlignmentFacetEntry[] }
+    | null
+    | undefined,
 ): AlignmentFacetEntry[] {
   if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.subNodes)) return payload.subNodes;
   if (payload && Array.isArray(payload.children)) return payload.children;
+  return [];
+}
+
+/** Normalize roster response — { drivers: [...] } (live) or a bare array. */
+export function extractMainDrivers(
+  payload: AlignmentMainDriver[] | AlignmentMainDriversResponse | null | undefined,
+): AlignmentMainDriver[] {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.drivers)) return payload.drivers;
   return [];
 }

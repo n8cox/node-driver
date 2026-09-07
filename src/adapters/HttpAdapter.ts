@@ -2,10 +2,12 @@ import type { EnsembleAdapter } from '@/adapters/EnsembleAdapter';
 import {
   ALIGNMENT_LOCAL_IDENTITY,
   extractFacetEntries,
+  extractMainDrivers,
   mapFacetEntries,
   mapMainDrivers,
   type AlignmentFacetEntry,
   type AlignmentMainDriver,
+  type AlignmentMainDriversResponse,
 } from '@/adapters/alignmentMapper';
 import type { DriverNode, EnsembleIdentity, NodeRole } from '@/types/ensemble';
 
@@ -44,8 +46,10 @@ export class HttpAdapter implements EnsembleAdapter {
   }
 
   async getMainDrivers(): Promise<DriverNode[]> {
-    const raw = await this.request<AlignmentMainDriver[]>('/api/ensemble/main-drivers');
-    const drivers = mapMainDrivers(Array.isArray(raw) ? raw : []);
+    const raw = await this.request<AlignmentMainDriver[] | AlignmentMainDriversResponse>(
+      '/api/ensemble/main-drivers',
+    );
+    const drivers = mapMainDrivers(extractMainDrivers(raw));
     this.parentRoles.clear();
     for (const driver of drivers) {
       this.parentRoles.set(driver.id, driver.role);
@@ -55,7 +59,8 @@ export class HttpAdapter implements EnsembleAdapter {
 
   async expandNode(nodeId: string): Promise<DriverNode[]> {
     const raw = await this.request<
-      AlignmentFacetEntry[] | { children?: AlignmentFacetEntry[] }
+      | AlignmentFacetEntry[]
+      | { subNodes?: AlignmentFacetEntry[]; children?: AlignmentFacetEntry[] }
     >(`/api/ensemble/main-drivers/${encodeURIComponent(nodeId)}/facet`);
     const entries = extractFacetEntries(raw);
     const parentRole = this.parentRoles.get(nodeId) ?? 'motor';
