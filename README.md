@@ -95,6 +95,10 @@ npm run icon
 
 On macOS without Node dependencies, you can rebuild ICNS from the PNG using Apple's tools (see comments at the top of `scripts/generate-icon.mjs` for the full `sips` + `iconutil` recipe).
 
+### Electron preload
+
+The desktop shell uses a **CommonJS** preload script (`electron/preload.cjs`) with `require('electron')`. Sandboxed preload (required with `contextIsolation` + `sandbox: true`) does not support ESM `import` in `.mjs` files.
+
 ## Configuration
 
 Copy `.env.example` to `.env.local` (optional):
