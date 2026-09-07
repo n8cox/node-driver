@@ -22,6 +22,9 @@
   --row-height: 52px;
   --strip-height: 40px;
   --footer-height: 28px;
+  --driving-glow: rgba(251, 191, 36, 0.18);
+  --driving-border: rgba(251, 191, 36, 0.55);
+  --activity-indent: 20px;
 }
 
 *,
@@ -170,8 +173,34 @@ html.electron.platform-darwin .main {
   cursor: not-allowed;
 }
 
+.refresh-btn:focus-visible,
+.expand-btn:focus-visible,
+.error-retry-btn:focus-visible,
+.driver-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.identity-driving-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--role-human);
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid var(--driving-border);
+  border-radius: 3px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
 /* Error banner */
 .error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 6px 12px;
   background: #3f1212;
   border-bottom: 1px solid #7f1d1d;
@@ -179,6 +208,33 @@ html.electron.platform-darwin .main {
   font-family: var(--font-mono);
   font-size: 11px;
   flex-shrink: 0;
+}
+
+.error-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.error-retry-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #fecaca;
+  background: transparent;
+  border: 1px solid #991b1b;
+  border-radius: 3px;
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.error-retry-btn:hover:not(:disabled) {
+  background: #7f1d1d;
+  border-color: #b91c1c;
+}
+
+.error-retry-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Main content */
@@ -196,7 +252,8 @@ html.electron.platform-darwin .main {
 .roster-header {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   padding: 8px 12px 6px;
   border-bottom: 1px solid var(--border);
   position: sticky;
@@ -220,9 +277,103 @@ html.electron.platform-darwin .main {
   color: var(--text-dim);
 }
 
+.roster-meta--loading {
+  color: var(--text-muted);
+}
+
+.roster-driving-count {
+  color: var(--role-human);
+  font-weight: 600;
+}
+
+.roster-kbd-hint {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
 .roster-list {
   display: flex;
   flex-direction: column;
+}
+
+.roster-list--loading {
+  opacity: 0.85;
+}
+
+.roster-skeleton-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  min-height: var(--row-height);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-row);
+}
+
+.roster-skeleton-expand {
+  width: 20px;
+  height: 20px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--bg-panel) 0%, #1c1c20 50%, var(--bg-panel) 100%);
+  background-size: 200% 100%;
+  animation: roster-shimmer 1.2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.roster-skeleton-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 2px;
+}
+
+.roster-skeleton-line {
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--bg-panel) 0%, #1c1c20 50%, var(--bg-panel) 100%);
+  background-size: 200% 100%;
+  animation: roster-shimmer 1.2s ease-in-out infinite;
+}
+
+.roster-skeleton-line--title {
+  width: 55%;
+}
+
+.roster-skeleton-line--meta {
+  width: 78%;
+  animation-delay: 0.15s;
+}
+
+@keyframes roster-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.roster-empty {
+  padding: 24px 12px 32px;
+  text-align: left;
+}
+
+.roster-empty-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.roster-empty-hint {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-dim);
 }
 
 /* Driver rows */
@@ -257,6 +408,29 @@ html.electron.platform-darwin .main {
   border-left: 3px solid var(--role-motor);
 }
 
+.driver-row.is-driving {
+  background: linear-gradient(90deg, var(--driving-glow) 0%, var(--bg-row) 28%);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.12);
+}
+
+.driver-row.is-driving:hover {
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.24) 0%, var(--bg-row-hover) 28%);
+}
+
+.driver-row.is-activity {
+  min-height: 44px;
+  font-size: 11px;
+}
+
+.driver-row.is-activity .driver-name {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.driver-row.is-activity .driver-purpose {
+  font-size: 11px;
+}
+
 .expand-btn,
 .expand-spacer {
   flex-shrink: 0;
@@ -286,6 +460,16 @@ html.electron.platform-darwin .main {
 .expand-btn:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+.expand-btn--expanded .expand-glyph {
+  transform: rotate(90deg);
+}
+
+.expand-glyph {
+  display: inline-block;
+  transition: transform 0.12s ease;
+  font-size: 11px;
 }
 
 .driver-content {
@@ -346,6 +530,32 @@ html.electron.platform-darwin .main {
   background: rgba(248, 113, 113, 0.12);
 }
 
+.activity-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.driving-badge {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #0a0a0b;
+  background: var(--role-human);
+  border-radius: 2px;
+  padding: 1px 6px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35);
+}
+
 /* Body state */
 .body-state {
   display: flex;
@@ -363,13 +573,43 @@ html.electron.platform-darwin .main {
   color: var(--text-muted);
 }
 
-/* Nested depth visual */
+.body-state--compact .body-state-meta {
+  font-size: 10px;
+}
+
+.body-state--compact .body-state-activity {
+  font-size: 10px;
+}
+
+/* Nested depth visual — activity sub-nodes indented with guide rail */
 .driver-node[data-depth='1'] .driver-row {
   background: #0f0f11;
+  border-left-width: 2px;
+  margin-left: 12px;
+  position: relative;
+}
+
+.driver-node[data-depth='1'] .driver-row::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
 }
 
 .driver-node[data-depth='2'] .driver-row {
   background: #0c0c0e;
+  margin-left: 12px;
+}
+
+.driver-node[data-depth='1'] .driver-row.is-driving {
+  background: linear-gradient(90deg, var(--driving-glow) 0%, #0f0f11 32%);
+}
+
+.driver-node[data-depth='2'] .driver-row.is-driving {
+  background: linear-gradient(90deg, var(--driving-glow) 0%, #0c0c0e 32%);
 }
 
 /* Footer */

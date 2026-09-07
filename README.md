@@ -59,7 +59,10 @@ npm run dist:mac:dmg
 
 - **Full-viewport dark dense tool UI** — identity strip + driver roster
 - **Main drivers by default** — human, hemispheres (Claude/Grok), connections (local models), motors (bots/process)
-- **Lazy expand** — click `+` on a row to load nested activity sub-nodes
+- **Lazy expand** — click `▸` or press **Enter** on a focused row to load nested activity sub-nodes
+- **Driving at a glance** — rows with `driving: true` show an amber **driving** badge, row highlight, and count in the identity strip + roster header
+- **Keyboard-first** — **R** or **F5** refresh; **↑↓** move focus between rows; **Enter** expand/collapse activity
+- **Honest states** — skeleton loading rows, empty roster message, error banner with **retry**
 - **Adapter seam** — swap data sources without touching UI code
 - **macOS desktop shell** — Electron app with custom icon, dark title bar, and offline SampleAdapter
 
@@ -131,7 +134,18 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for the full adapter interface and Shar
 | `connection` | Ollama | Local model endpoints |
 | `motor` | n8n, cron bots | Process execution |
 
-Each node shows **name + purpose** on the top line and **body-state** (state, engagement, driving, activity line) below.
+Each node shows **name + purpose** on the top line and **body-state** (state, engagement, driving, activity line) below. Nested **activity** sub-nodes (loaded on expand) are indented with a guide rail and an `activity` tag.
+
+## Operator shortcuts
+
+| Key | Action |
+|-----|--------|
+| **R** or **F5** | Refresh ensemble (identity + main drivers) |
+| **↑** / **↓** | Move focus between roster rows |
+| **Enter** | Expand or collapse activity sub-nodes on the focused row |
+| **Tab** | Move focus to the next row or control |
+
+The roster header shows a keyboard hint when drivers are loaded. Driving members are highlighted in the strip and roster so you can scan who is steering in under two seconds.
 
 ## License
 

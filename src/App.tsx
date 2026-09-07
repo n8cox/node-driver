@@ -3,6 +3,8 @@ import { IdentityStrip } from '@/components/IdentityStrip';
 import { Roster } from '@/components/Roster';
 import { createAdapter } from '@/config/adapter';
 import { useEnsemble } from '@/hooks/useEnsemble';
+import { useKeyboardRefresh } from '@/hooks/useKeyboardRefresh';
+import { countMainDriving } from '@/lib/rosterSummary';
 
 export function App() {
   const adapter = useMemo(() => createAdapter(), []);
@@ -17,13 +19,30 @@ export function App() {
     refresh,
   } = useEnsemble(adapter);
 
+  const drivingCount = useMemo(() => countMainDriving(drivers), [drivers]);
+
+  useKeyboardRefresh(() => void refresh(), !loading);
+
   return (
     <div className="app">
-      <IdentityStrip identity={identity} loading={loading} onRefresh={() => void refresh()} />
+      <IdentityStrip
+        identity={identity}
+        loading={loading}
+        drivingCount={drivingCount}
+        onRefresh={() => void refresh()}
+      />
 
       {error && (
         <div className="error-banner" role="alert">
-          {error}
+          <span className="error-banner-text">{error}</span>
+          <button
+            type="button"
+            className="error-retry-btn"
+            onClick={() => void refresh()}
+            disabled={loading}
+          >
+            retry
+          </button>
         </div>
       )}
 

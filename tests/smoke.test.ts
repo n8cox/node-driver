@@ -99,6 +99,21 @@ describe('useEnsemble lazy expand cache', () => {
   });
 });
 
+describe('useEnsemble error handling', () => {
+  it('surfaces adapter load failures', async () => {
+    const adapter = {
+      getIdentity: () => Promise.reject(new Error('Adapter offline')),
+      getMainDrivers: () => Promise.reject(new Error('Adapter offline')),
+      expandNode: () => Promise.resolve([]),
+    };
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe('Adapter offline');
+    expect(result.current.drivers).toEqual([]);
+  });
+});
+
 describe('HttpAdapter stub', () => {
   it('throws HttpAdapterNotConfiguredError on getIdentity', async () => {
     const adapter = new HttpAdapter({ baseUrl: 'http://localhost:8787' });
