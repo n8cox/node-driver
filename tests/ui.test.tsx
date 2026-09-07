@@ -346,6 +346,13 @@ describe('App keyboard and integration', () => {
   it('shows empty activity honesty after expanding motor-watchdog', async () => {
     const { container } = render(<App />);
 
+    // The app opens on the outline projection; the roster is the other view of
+    // the same node space.
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Roster' })).toBeTruthy();
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Roster' }));
+
     await waitFor(() => {
       expect(screen.getByText('Watchdog Monitor')).toBeTruthy();
     });

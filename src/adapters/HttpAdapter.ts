@@ -1,4 +1,5 @@
-import type { EnsembleAdapter } from '@/adapters/EnsembleAdapter';
+import type { EnsembleAdapter, OutlineWriteResult } from '@/adapters/EnsembleAdapter';
+import type { Correlation, OutlineDiff, OutlineLine, OutlineSnapshot } from '@/types/outline';
 import {
   ALIGNMENT_LOCAL_IDENTITY,
   extractFacetEntries,
@@ -24,8 +25,10 @@ export interface HttpAdapterOptions {
  * HTTP adapter — fetches live roster data from Alignment ensemble API.
  *
  * Endpoints:
- *   GET  {baseUrl}/api/ensemble/main-drivers
- *   GET  {baseUrl}/api/ensemble/main-drivers/:id/facet
+ *   GET  {baseUrl}/api/ensemble/main-drivers            roster projection
+ *   GET  {baseUrl}/api/ensemble/main-drivers/:id/facet  roster children
+ *   GET  {baseUrl}/api/driver/outline                   outline projection
+ *   POST {baseUrl}/api/driver/op                        outline writes
  *
  * Identity is static until Alignment exposes a dedicated endpoint.
  */
@@ -67,15 +70,52 @@ export class HttpAdapter implements EnsembleAdapter {
     return mapFacetEntries(entries, parentRole).map(cloneDriverNode);
   }
 
-  private async request<T>(path: string): Promise<T> {
+  /** The outline projection — the same node space, linearized to be read. */
+  async getOutline(): Promise<OutlineSnapshot> {
+    const raw = await this.request<{
+      rev?: number;
+      lines?: OutlineLine[];
+      correlations?: Correlation[];
+    }>('/api/driver/outline');
+
+    return {
+      rev: typeof raw?.rev === 'number' ? raw.rev : 0,
+      lines: Array.isArray(raw?.lines) ? raw.lines : [],
+      correlations: Array.isArray(raw?.correlations) ? raw.correlations : [],
+    };
+  }
+
+  /**
+   * Write a structural change. `origin: 'app'` tags this window as the writer so
+   * the server's broadcast does not echo our own edit back at us as remote news.
+   */
+  async applyOutlineDiff(diff: OutlineDiff): Promise<OutlineWriteResult> {
+    const raw = await this.request<{ ok?: boolean; rev?: number; dropped?: string[] }>(
+      '/api/driver/op',
+      {
+        method: 'POST',
+        body: JSON.stringify({ upsert: diff.upsert, remove: diff.remove, origin: 'app' }),
+      },
+    );
+
+    return {
+      rev: typeof raw?.rev === 'number' ? raw.rev : 0,
+      ...(Array.isArray(raw?.dropped) && raw.dropped.length ? { dropped: raw.dropped } : {}),
+    };
+  }
+
+  private async request<T>(path: string, init?: RequestInit): Promise<T> {
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (this.token) {
       headers.Authorization = `Bearer ${this.token}`;
     }
+    if (init?.body) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     let response: Response;
     try {
-      response = await this.fetchFn(`${this.baseUrl}${path}`, { headers });
+      response = await this.fetchFn(`${this.baseUrl}${path}`, { ...init, headers });
     } catch (cause) {
       throw new HttpAdapterError(
         `HttpAdapter request failed for ${path}: ${cause instanceof Error ? cause.message : String(cause)}`,

@@ -19,6 +19,45 @@ Node Driver is the standalone primary working interface for **Machine Intelligen
                                   └──────────────┘
 ```
 
+## Two projections of one node space
+
+**Design law (Nathan, 2026-07-01): "Node Driver is the linear expression of the node graphs."**
+
+The canvas and the driver are two projections of ONE node space. The graph is thought in its
+native shape; the outline is the same graph linearized to be read. Anything expressible in one
+projection must be expressible in the other — as a law of the system, not a bridged exception.
+
+| Projection | Surface | Adapter methods |
+|---|---|---|
+| **Outline** | Nested bullets that edit like an outliner. The working surface. | `getOutline` / `applyOutlineDiff` |
+| **Roster** | The same space grouped by who is driving. Read-only. | `getMainDrivers` / `expandNode` |
+
+The outline is the **spine**: a strict tree, because outlines must edit like outlines. Edges a
+tree traversal cannot hold are `Correlation`s — a second class of edge, carried in the snapshot
+and never part of the parent chain. Rendering them extra-dimensionally is not yet built.
+
+### Editing grammar
+
+Every keystroke maps to a pure function in `src/outline/ops.ts` that returns an `OutlineDiff`
+(`{ upsert, remove }`) — the exact wire shape the backend accepts. The behaviour under test and
+the behaviour on screen are the same function.
+
+| Key | Operation |
+|---|---|
+| `Enter` | New sibling below — or first child when the subtree is open |
+| `Enter` on an empty nested line | Outdent (the double-Enter list idiom) |
+| `Tab` / `Shift-Tab` | Indent / outdent |
+| `Backspace` on an empty line | Delete, **promoting children** into the freed slot |
+| `Backspace` at line start | Merge into the previous line (declines when the line has children) |
+| `Alt+Shift+Up/Down` | Reorder among siblings; the subtree travels along |
+
+Writes are **optimistic**: the diff is applied locally, then persisted. A failed write rolls the
+outline back to exactly its prior state — an edit that did not survive must not keep looking like
+it did. Lines the backend refuses are reported rather than silently dropped.
+
+Not yet built: cut/copy/paste of a subtree, structural undo/redo, drag-to-reorder, zoom-into-node,
+token chunking, and the extra-dimensional rendering of correlations.
+
 ## Design laws
 
 1. **Main drivers only by default** — the roster loads top-level ensemble members. Nested activity sub-nodes are not fetched until the operator expands a row.

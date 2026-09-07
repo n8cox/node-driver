@@ -1,5 +1,7 @@
-import type { EnsembleAdapter } from '@/adapters/EnsembleAdapter';
+import type { EnsembleAdapter, OutlineWriteResult } from '@/adapters/EnsembleAdapter';
 import type { DriverNode, EnsembleIdentity } from '@/types/ensemble';
+import type { OutlineDiff, OutlineLine, OutlineSnapshot } from '@/types/outline';
+import { applyDiff } from '@/outline/ops';
 
 const IDENTITY: EnsembleIdentity = {
   id: 'sample-ensemble-01',
@@ -197,12 +199,25 @@ function cloneDriverNode(node: DriverNode): DriverNode {
   };
 }
 
+/** A small outline that demonstrates nesting, collapse, authorship, and status. */
+const SAMPLE_OUTLINE: OutlineLine[] = [
+  { id: 'o-1', parentId: null, order: 1, text: 'Ensemble priorities', author: 'operator', status: 'flag' },
+  { id: 'o-1-1', parentId: 'o-1', order: 1, text: 'Land the outline projection', author: 'operator', status: 'half' },
+  { id: 'o-1-2', parentId: 'o-1', order: 2, text: 'Keep the roster as a view of the same node space', author: 'operator', status: 'new' },
+  { id: 'o-2', parentId: null, order: 2, text: 'Notes from the hemispheres', author: 'claude', collapsed: false, status: 'note' },
+  { id: 'o-2-1', parentId: 'o-2', order: 1, text: 'The outline is the spine — a strict tree', author: 'claude', status: 'done' },
+  { id: 'o-2-2', parentId: 'o-2', order: 2, text: 'Correlations are a second class of edge, off the page', author: 'claude', status: 'note' },
+  { id: 'o-3', parentId: null, order: 3, text: 'Press Enter to add a line, Tab to indent', author: 'operator', status: 'new' },
+];
+
 /**
  * Sample adapter with realistic demo data.
  * Ships as the default — no API keys or private paths required.
  */
 export class SampleAdapter implements EnsembleAdapter {
   private expanded = new Set<string>();
+  /** In-memory outline so the demo is genuinely editable with no backend. */
+  private outline: OutlineSnapshot = { rev: 1, lines: [...SAMPLE_OUTLINE], correlations: [] };
 
   async getIdentity(): Promise<EnsembleIdentity> {
     await delay(80);
@@ -218,6 +233,25 @@ export class SampleAdapter implements EnsembleAdapter {
     await delay(EXPAND_DELAY_MS);
     this.expanded.add(nodeId);
     return (CHILDREN[nodeId] ?? []).map(cloneDriverNode);
+  }
+
+  async getOutline(): Promise<OutlineSnapshot> {
+    await delay(90);
+    return {
+      rev: this.outline.rev,
+      lines: this.outline.lines.map((l) => ({ ...l })),
+      correlations: this.outline.correlations.map((c) => ({ ...c })),
+    };
+  }
+
+  async applyOutlineDiff(diff: OutlineDiff): Promise<OutlineWriteResult> {
+    await delay(40);
+    this.outline = {
+      ...this.outline,
+      rev: this.outline.rev + 1,
+      lines: applyDiff(this.outline.lines, diff),
+    };
+    return { rev: this.outline.rev };
   }
 
   /** Test helper — whether a node has been expanded. */

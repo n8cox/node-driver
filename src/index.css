@@ -672,3 +672,109 @@ html.electron.platform-darwin .main {
 .footer-sep {
   color: var(--border);
 }
+
+/* ── Projection tabs — outline and roster are views of one node space ────── */
+.projection-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line, #2a2a2a);
+  background: var(--panel, #141414);
+}
+
+.projection-tab {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--dim, #888);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 10px;
+}
+
+.projection-tab:hover { color: var(--fg, #ddd); }
+
+.projection-tab-active {
+  background: var(--raise, #1e1e1e);
+  border-color: var(--line, #2a2a2a);
+  color: var(--fg, #ddd);
+}
+
+.projection-hint {
+  color: var(--dim, #777);
+  font-size: 11px;
+  margin-left: auto;
+}
+
+/* ── Outline projection ──────────────────────────────────────────────────── */
+.outline { padding: 6px 0 24px; }
+
+.outline-empty {
+  color: var(--dim, #777);
+  font-size: 12px;
+  padding: 16px 18px;
+}
+
+.outline-dropped {
+  background: #2a1e0e;
+  border-left: 2px solid #b8860b;
+  color: #d9b06a;
+  font-size: 11px;
+  margin: 4px 12px;
+  padding: 6px 10px;
+}
+
+.outline-row {
+  align-items: flex-start;
+  border-left: 1px solid transparent;
+  display: flex;
+  gap: 4px;
+  padding: 1px 12px 1px 8px;
+}
+
+.outline-row-focused {
+  background: var(--raise, #191919);
+  border-left-color: var(--accent, #c8901e);
+}
+
+.outline-chevron {
+  background: none;
+  border: none;
+  color: var(--dim, #666);
+  cursor: pointer;
+  font-size: 10px;
+  line-height: 20px;
+  padding: 0;
+  width: 14px;
+}
+
+.outline-chevron:disabled { cursor: default; opacity: 0; }
+
+.outline-bullet {
+  color: var(--dim, #7a7a7a);
+  font-size: 11px;
+  line-height: 20px;
+  width: 14px;
+}
+
+.outline-text {
+  background: transparent;
+  border: none;
+  color: var(--fg, #dcdcdc);
+  flex: 1;
+  font: inherit;
+  line-height: 20px;
+  outline: none;
+  overflow: hidden;
+  padding: 0;
+  resize: none;
+}
+
+.outline-author {
+  color: var(--dim, #555);
+  font-size: 10px;
+  line-height: 20px;
+  padding-left: 8px;
+}

@@ -57,6 +57,13 @@ npm run dist:mac:dmg
 
 ## What you get
 
+- **Two projections of one node space** — an editable **Outline** (the working surface) and the
+  **Roster** (who is driving), switched from the tab strip
+- **Outliner grammar** — `Enter` new line · `Tab`/`⇧Tab` indent/outdent · `⌥⇧↑↓` reorder ·
+  `Backspace` on an empty line deletes and promotes its children · `Backspace` at line start merges
+  up · click the chevron to fold
+- **Optimistic edits** — typing never waits on the network, and a failed write rolls back rather
+  than leaving a phantom edit on screen
 - **Full-viewport dark dense tool UI** — identity strip + driver roster
 - **Main drivers by default** — human, hemispheres (Claude/Grok), connections (local models), motors (bots/process)
 - **Lazy expand** — click `▸` or press **Enter** on a focused row to load nested activity sub-nodes
