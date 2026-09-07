@@ -58,7 +58,6 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
-    setExpandedIds(new Set());
     try {
       const [id, mainDrivers] = await Promise.all([
         adapter.getIdentity(),
@@ -66,10 +65,10 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
       ]);
       setIdentity(id);
       setDrivers(mainDrivers);
+      setExpandedIds(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load ensemble');
-      setIdentity(null);
-      setDrivers([]);
+      // Keep last-good identity/drivers on refresh failure; first load stays empty.
     } finally {
       setLoading(false);
     }

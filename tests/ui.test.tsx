@@ -183,6 +183,35 @@ describe('DriverNodeRow', () => {
     expect(onToggleExpand).toHaveBeenCalledTimes(1);
   });
 
+  it('truncates long purpose and activity with title tooltips', () => {
+    render(
+      <DriverNodeRow
+        node={{
+          ...MAIN_DRIVERS[1],
+          purpose:
+            'Structured reasoning and long-context synthesis across many documents and constraints',
+          bodyState: {
+            ...MAIN_DRIVERS[1].bodyState,
+            activityLine:
+              'Drafting architecture comparison matrix with latency tradeoffs and failover paths',
+          },
+        }}
+        depth={0}
+        expandedIds={new Set()}
+        expandingIds={new Set()}
+        onToggleExpand={() => {}}
+      />,
+    );
+
+    const purpose = document.querySelector('.driver-purpose');
+    expect(purpose?.className).toContain('truncate');
+    expect(purpose?.getAttribute('title')).toContain('Structured reasoning');
+
+    const activity = document.querySelector('.body-state-activity');
+    expect(activity?.className).toContain('truncate');
+    expect(activity?.getAttribute('title')).toContain('Drafting architecture');
+  });
+
   it('shows empty activity message and keeps collapse affordance after empty expand', () => {
     const operator = {
       ...MAIN_DRIVERS[0],

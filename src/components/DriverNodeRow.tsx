@@ -91,7 +91,9 @@ export function DriverNodeRow({
             {isActivity && <span className="activity-tag">activity</span>}
             <span className="driver-name">{node.name}</span>
             <span className="driver-sep">—</span>
-            <span className="driver-purpose">{node.purpose}</span>
+            <span className="driver-purpose truncate" title={node.purpose}>
+              {node.purpose}
+            </span>
             {isDriving && (
               <span className="driving-badge" title="Currently driving the ensemble">
                 driving

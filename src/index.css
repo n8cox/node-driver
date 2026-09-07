@@ -16,10 +16,11 @@
   --role-connection: #34d399;
   --role-motor: #f87171;
 
-  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Segoe UI Mono', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
-  --row-height: 52px;
+  --row-height: 44px;
+  --activity-row-height: 38px;
   --strip-height: 40px;
   --footer-height: 28px;
   --driving-glow: rgba(251, 191, 36, 0.18);
@@ -380,9 +381,9 @@ html.electron.platform-darwin .main {
 .driver-row {
   display: flex;
   align-items: flex-start;
-  gap: 6px;
+  gap: 5px;
   min-height: var(--row-height);
-  padding: 8px 12px 8px 0;
+  padding: 5px 10px 5px 0;
   border-bottom: 1px solid var(--border);
   background: var(--bg-row);
   transition: background 0.1s;
@@ -426,7 +427,7 @@ html.electron.platform-darwin .main {
 }
 
 .driver-row.is-activity {
-  min-height: 44px;
+  min-height: var(--activity-row-height);
   font-size: 11px;
 }
 
@@ -488,24 +489,30 @@ html.electron.platform-darwin .main {
 .driver-topline {
   display: flex;
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 3px;
+  flex-wrap: nowrap;
+  gap: 5px;
+  margin-bottom: 2px;
+  min-width: 0;
 }
 
 .driver-name {
   font-weight: 600;
   font-size: 13px;
+  flex-shrink: 0;
 }
 
 .driver-sep {
   color: var(--text-dim);
+  flex-shrink: 0;
 }
 
 .driver-purpose {
   color: var(--text-muted);
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .role-glyph-badge {
@@ -578,10 +585,16 @@ html.electron.platform-darwin .main {
 
 .body-state-meta {
   color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .body-state-activity {
   color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .body-state--compact .body-state-meta {

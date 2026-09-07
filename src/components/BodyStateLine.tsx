@@ -14,10 +14,16 @@ export function BodyStateLine({ bodyState, compact = false }: BodyStateLineProps
     parts.push(`engagement: ${bodyState.engagement}`);
   }
 
+  const meta = parts.join(' · ');
+
   return (
     <div className={`body-state ${compact ? 'body-state--compact' : ''}`}>
-      <span className="body-state-meta">{parts.join(' · ')}</span>
-      <span className="body-state-activity">{bodyState.activityLine}</span>
+      <span className="body-state-meta" title={meta}>
+        {meta}
+      </span>
+      <span className="body-state-activity truncate" title={bodyState.activityLine}>
+        {bodyState.activityLine}
+      </span>
     </div>
   );
 }

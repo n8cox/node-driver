@@ -115,7 +115,7 @@ describe('useEnsemble lazy expand cache', () => {
 });
 
 describe('useEnsemble error handling', () => {
-  it('surfaces adapter load failures', async () => {
+  it('surfaces adapter load failures on first load', async () => {
     const adapter = {
       getIdentity: () => Promise.reject(new Error('Adapter offline')),
       getMainDrivers: () => Promise.reject(new Error('Adapter offline')),
@@ -126,6 +126,68 @@ describe('useEnsemble error handling', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.error).toBe('Adapter offline');
     expect(result.current.drivers).toEqual([]);
+    expect(result.current.identity).toBeNull();
+  });
+
+  it('retains last-good drivers and expanded state when refresh fails', async () => {
+    let failRefresh = false;
+
+    class FlakyAdapter extends SampleAdapter {
+      override async getIdentity() {
+        if (failRefresh) throw new Error('Adapter offline');
+        return super.getIdentity();
+      }
+
+      override async getMainDrivers() {
+        if (failRefresh) throw new Error('Adapter offline');
+        return super.getMainDrivers();
+      }
+    }
+
+    const adapter = new FlakyAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.drivers.length).toBe(MAIN_DRIVERS.length);
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
+
+    failRefresh = true;
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(result.current.error).toBe('Adapter offline');
+    expect(result.current.drivers.length).toBe(MAIN_DRIVERS.length);
+    expect(result.current.identity?.name).toBe(IDENTITY.name);
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
+  });
+
+  it('clears expanding state but keeps roster when expand fails', async () => {
+    class ExpandFailAdapter extends SampleAdapter {
+      override async expandNode(): Promise<DriverNode[]> {
+        throw new Error('Expand failed');
+      }
+    }
+
+    const adapter = new ExpandFailAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    const driverCount = result.current.drivers.length;
+
+    await act(async () => {
+      await result.current.toggleExpand('hemisphere-claude', true);
+    });
+
+    expect(result.current.error).toBe('Expand failed');
+    expect(result.current.drivers.length).toBe(driverCount);
+    expect(result.current.expandingIds.has('hemisphere-claude')).toBe(false);
+    expect(result.current.expandedIds.has('hemisphere-claude')).toBe(false);
   });
 });
 
