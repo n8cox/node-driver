@@ -392,6 +392,14 @@ html.electron.platform-darwin .main {
   background: var(--bg-row-hover);
 }
 
+.driver-row--expandable {
+  cursor: pointer;
+}
+
+.driver-row--expandable .driver-content {
+  cursor: pointer;
+}
+
 .driver-row.role-human {
   border-left: 3px solid var(--role-human);
 }
@@ -508,6 +516,15 @@ html.electron.platform-darwin .main {
   padding: 1px 5px;
   border-radius: 2px;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.role-glyph {
+  font-size: 8px;
+  line-height: 1;
+  opacity: 0.9;
 }
 
 .role-badge.role-human {
@@ -579,6 +596,15 @@ html.electron.platform-darwin .main {
 
 .body-state--compact .body-state-activity {
   font-size: 10px;
+}
+
+.activity-empty {
+  padding: 4px 12px 8px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border);
+  background: #0f0f11;
 }
 
 /* Nested depth visual — activity sub-nodes indented with guide rail */

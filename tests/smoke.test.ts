@@ -97,6 +97,21 @@ describe('useEnsemble lazy expand cache', () => {
     expect(adapter.expandCalls).toBe(1);
     expect(result.current.expandedIds.has('hemisphere-claude')).toBe(true);
   });
+
+  it('keeps expanded state with empty children after expandNode returns []', async () => {
+    const adapter = new SampleAdapter();
+    const { result } = renderHook(() => useEnsemble(adapter));
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await act(async () => {
+      await result.current.toggleExpand('human-01', true);
+    });
+
+    expect(result.current.expandedIds.has('human-01')).toBe(true);
+    const operator = result.current.drivers.find((d) => d.id === 'human-01');
+    expect(operator?.children).toEqual([]);
+  });
 });
 
 describe('useEnsemble error handling', () => {

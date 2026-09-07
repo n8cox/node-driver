@@ -1,11 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { App } from '@/App';
+import { BodyStateLine } from '@/components/BodyStateLine';
 import { DriverNodeRow } from '@/components/DriverNodeRow';
 import { Roster } from '@/components/Roster';
 import { MAIN_DRIVERS } from '@/adapters/SampleAdapter';
 import { flattenVisibleNodes } from '@/lib/flattenVisibleNodes';
 import { countMainDriving, countDrivingInTree } from '@/lib/rosterSummary';
+import { ROLE_GLYPH, ROLE_LABEL } from '@/lib/roles';
 import type { DriverNode } from '@/types/ensemble';
 
 afterEach(() => {
@@ -59,6 +61,41 @@ describe('flattenVisibleNodes', () => {
   });
 });
 
+describe('BodyStateLine', () => {
+  it('omits driving from meta text — badge and row styling own the glance', () => {
+    render(
+      <BodyStateLine
+        bodyState={{
+          state: 'present',
+          engagement: 'focused',
+          driving: true,
+          activityLine: 'Reviewing draft',
+        }}
+      />,
+    );
+
+    const meta = document.querySelector('.body-state-meta');
+    expect(meta?.textContent).toBe('present · engagement: focused');
+    expect(meta?.textContent).not.toContain('driving');
+  });
+
+  it('omits not driving from meta text for non-driving rows', () => {
+    render(
+      <BodyStateLine
+        bodyState={{
+          state: 'active',
+          driving: false,
+          activityLine: 'Idle',
+        }}
+      />,
+    );
+
+    const meta = document.querySelector('.body-state-meta');
+    expect(meta?.textContent).toBe('active');
+    expect(meta?.textContent).not.toContain('not driving');
+  });
+});
+
 describe('DriverNodeRow', () => {
   it('shows driving badge when bodyState.driving is true', () => {
     render(
@@ -95,6 +132,65 @@ describe('DriverNodeRow', () => {
 
     expect(screen.getByText('activity').className).toContain('activity-tag');
     expect(document.querySelector('.driver-row.is-activity')).toBeTruthy();
+  });
+
+  it('renders role glyph and label on the badge', () => {
+    render(
+      <DriverNodeRow
+        node={MAIN_DRIVERS[4]}
+        depth={0}
+        expandedIds={new Set()}
+        expandingIds={new Set()}
+        onToggleExpand={() => {}}
+      />,
+    );
+
+    const badge = document.querySelector('.role-badge.role-motor');
+    expect(badge?.textContent).toContain(ROLE_GLYPH.motor);
+    expect(badge?.textContent).toContain(ROLE_LABEL.motor);
+  });
+
+  it('toggles expand when clicking the row body outside the chevron', () => {
+    const onToggleExpand = vi.fn();
+    const { container } = render(
+      <DriverNodeRow
+        node={MAIN_DRIVERS[1]}
+        depth={0}
+        expandedIds={new Set()}
+        expandingIds={new Set()}
+        onToggleExpand={onToggleExpand}
+      />,
+    );
+
+    const row = container.querySelector('[data-node-id="hemisphere-claude"]') as HTMLElement;
+    fireEvent.click(row.querySelector('.driver-content')!);
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+    expect(onToggleExpand).toHaveBeenCalledWith('hemisphere-claude', true);
+
+    onToggleExpand.mockClear();
+    fireEvent.click(row.querySelector('.expand-btn')!);
+    expect(onToggleExpand).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows empty activity message and keeps collapse affordance after empty expand', () => {
+    const operator = {
+      ...MAIN_DRIVERS[0],
+      children: [] as DriverNode[],
+      hasChildren: false,
+    };
+
+    render(
+      <DriverNodeRow
+        node={operator}
+        depth={0}
+        expandedIds={new Set(['human-01'])}
+        expandingIds={new Set()}
+        onToggleExpand={() => {}}
+      />,
+    );
+
+    expect(screen.getByText('No activity sub-nodes')).toBeTruthy();
+    expect(document.querySelector('.expand-btn.expand-btn--expanded')).toBeTruthy();
   });
 });
 

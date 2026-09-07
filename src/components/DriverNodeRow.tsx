@@ -1,6 +1,7 @@
+import type { MouseEvent } from 'react';
 import { BodyStateLine } from '@/components/BodyStateLine';
 import { nodeHasExpandableChildren } from '@/hooks/useEnsemble';
-import { ROLE_LABEL, roleClass } from '@/lib/roles';
+import { ROLE_GLYPH, ROLE_LABEL, roleClass } from '@/lib/roles';
 import type { DriverNode } from '@/types/ensemble';
 
 interface DriverNodeRowProps {
@@ -20,13 +21,25 @@ export function DriverNodeRow({
 }: DriverNodeRowProps) {
   const isExpanded = expandedIds.has(node.id);
   const isExpanding = expandingIds.has(node.id);
-  const canExpand = nodeHasExpandableChildren(node, new Set(expandedIds));
-  const showChildren = isExpanded && node.children && node.children.length > 0;
+  const canToggleActivity = nodeHasExpandableChildren(node, expandedIds);
+  const showChildRows = isExpanded && Boolean(node.children?.length);
+  const showEmptyActivity =
+    isExpanded && node.children !== undefined && node.children.length === 0;
   const isDriving = node.bodyState.driving === true;
   const isActivity = depth > 0;
 
-  const handleExpandClick = () => {
-    if (canExpand) onToggleExpand(node.id, canExpand);
+  const handleToggleActivity = () => {
+    if (isExpanding || !canToggleActivity) return;
+    onToggleExpand(node.id, canToggleActivity);
+  };
+
+  const handleExpandButtonClick = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    handleToggleActivity();
+  };
+
+  const handleRowClick = () => {
+    handleToggleActivity();
   };
 
   return (
@@ -37,6 +50,7 @@ export function DriverNodeRow({
           roleClass(node.role),
           isDriving ? 'is-driving' : '',
           isActivity ? 'is-activity' : '',
+          canToggleActivity ? 'driver-row--expandable' : '',
         ]
           .filter(Boolean)
           .join(' ')}
@@ -45,8 +59,10 @@ export function DriverNodeRow({
         data-node-id={node.id}
         tabIndex={0}
         aria-label={`${node.name}, ${node.purpose}`}
+        aria-expanded={canToggleActivity ? isExpanded : undefined}
+        onClick={canToggleActivity ? handleRowClick : undefined}
       >
-        {canExpand ? (
+        {canToggleActivity ? (
           <button
             type="button"
             className={`expand-btn ${isExpanded ? 'expand-btn--expanded' : 'expand-btn--collapsed'}`}
@@ -58,7 +74,7 @@ export function DriverNodeRow({
                   ? `Collapse activity for ${node.name}`
                   : `Expand activity for ${node.name}`
             }
-            onClick={handleExpandClick}
+            onClick={handleExpandButtonClick}
             disabled={isExpanding}
             title={isExpanded ? 'Collapse activity (Enter)' : 'Expand activity (Enter)'}
           >
@@ -81,13 +97,28 @@ export function DriverNodeRow({
                 driving
               </span>
             )}
-            <span className={`role-badge ${roleClass(node.role)}`}>{ROLE_LABEL[node.role]}</span>
+            <span className={`role-badge ${roleClass(node.role)}`}>
+              <span className="role-glyph" aria-hidden="true">
+                {ROLE_GLYPH[node.role]}
+              </span>
+              {ROLE_LABEL[node.role]}
+            </span>
           </div>
           <BodyStateLine bodyState={node.bodyState} compact={isActivity} />
         </div>
       </div>
 
-      {showChildren &&
+      {showEmptyActivity && (
+        <div
+          className="activity-empty"
+          style={{ paddingLeft: `${32 + depth * 20}px` }}
+          role="status"
+        >
+          No activity sub-nodes
+        </div>
+      )}
+
+      {showChildRows &&
         node.children!.map((child) => (
           <DriverNodeRow
             key={child.id}

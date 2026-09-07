@@ -29,9 +29,10 @@ function mergeChildren(
   });
 }
 
-function nodeHasExpandableChildren(node: DriverNode, expandedIds: Set<string>): boolean {
-  if (node.children !== undefined) return node.children.length > 0;
-  return Boolean(node.hasChildren) || expandedIds.has(node.id);
+function nodeHasExpandableChildren(node: DriverNode, expandedIds: ReadonlySet<string>): boolean {
+  if (expandedIds.has(node.id)) return true;
+  if (node.children !== undefined) return true;
+  return Boolean(node.hasChildren);
 }
 
 /** Walk the driver tree to find a node by id (includes nested children). */

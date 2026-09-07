@@ -7,6 +7,14 @@ export const ROLE_LABEL: Record<NodeRole, string> = {
   motor: 'motor',
 };
 
+/** Small mono glyphs paired with role labels — literal, not theatrical. */
+export const ROLE_GLYPH: Record<NodeRole, string> = {
+  human: '·',
+  hemisphere: '◇',
+  connection: '○',
+  motor: '▶',
+};
+
 export function roleClass(role: NodeRole): string {
   return `role-${role}`;
 }

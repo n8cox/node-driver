@@ -6,16 +6,12 @@ interface BodyStateLineProps {
   compact?: boolean;
 }
 
-/** Renders body-state: state, optional engagement, driving flag, activity line. */
+/** Renders body-state: state, optional engagement, activity line. Driving is shown on the row badge. */
 export function BodyStateLine({ bodyState, compact = false }: BodyStateLineProps) {
   const parts: string[] = [bodyState.state];
 
   if (bodyState.engagement) {
     parts.push(`engagement: ${bodyState.engagement}`);
-  }
-
-  if (bodyState.driving !== undefined) {
-    parts.push(bodyState.driving ? 'driving' : 'not driving');
   }
 
   return (
