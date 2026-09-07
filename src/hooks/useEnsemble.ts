@@ -7,6 +7,7 @@ export interface UseEnsembleResult {
   drivers: DriverNode[];
   loading: boolean;
   error: string | null;
+  expandErrors: ReadonlyMap<string, string>;
   expandingIds: ReadonlySet<string>;
   expandedIds: ReadonlySet<string>;
   toggleExpand: (nodeId: string, hasChildren: boolean) => Promise<void>;
@@ -52,6 +53,7 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
   const [drivers, setDrivers] = useState<DriverNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandErrors, setExpandErrors] = useState<Map<string, string>>(new Map());
   const [expandingIds, setExpandingIds] = useState<Set<string>>(new Set());
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -66,6 +68,7 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
       setIdentity(id);
       setDrivers(mainDrivers);
       setExpandedIds(new Set());
+      setExpandErrors(new Map());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load ensemble');
       // Keep last-good identity/drivers on refresh failure; first load stays empty.
@@ -88,6 +91,11 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
           next.delete(nodeId);
           return next;
         });
+        setExpandErrors((prev) => {
+          const next = new Map(prev);
+          next.delete(nodeId);
+          return next;
+        });
         return;
       }
 
@@ -102,8 +110,14 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
         const children = await adapter.expandNode(nodeId);
         setDrivers((prev) => mergeChildren(prev, nodeId, children));
         setExpandedIds((prev) => new Set(prev).add(nodeId));
+        setExpandErrors((prev) => {
+          const next = new Map(prev);
+          next.delete(nodeId);
+          return next;
+        });
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to expand node');
+        const message = err instanceof Error ? err.message : 'Failed to expand node';
+        setExpandErrors((prev) => new Map(prev).set(nodeId, message));
       } finally {
         setExpandingIds((prev) => {
           const next = new Set(prev);
@@ -121,6 +135,7 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
       drivers,
       loading,
       error,
+      expandErrors,
       expandingIds,
       expandedIds,
       toggleExpand,
@@ -131,6 +146,7 @@ export function useEnsemble(adapter: EnsembleAdapter): UseEnsembleResult {
       drivers,
       loading,
       error,
+      expandErrors,
       expandingIds,
       expandedIds,
       toggleExpand,

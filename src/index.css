@@ -614,6 +614,15 @@ html.electron.platform-darwin .main {
   background: #0f0f11;
 }
 
+.activity-expand-error {
+  padding: 4px 12px 8px 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #fecaca;
+  border-bottom: 1px solid #7f1d1d;
+  background: #1a1010;
+}
+
 /* Nested depth visual — activity sub-nodes indented with guide rail */
 .driver-node[data-depth='1'] .driver-row {
   background: #0f0f11;

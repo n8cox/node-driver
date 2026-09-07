@@ -11,6 +11,7 @@ interface RosterProps {
   loading: boolean;
   expandedIds: ReadonlySet<string>;
   expandingIds: ReadonlySet<string>;
+  expandErrors: ReadonlyMap<string, string>;
   onToggleExpand: (nodeId: string, hasChildren: boolean) => void;
 }
 
@@ -37,6 +38,7 @@ export function Roster({
   loading,
   expandedIds,
   expandingIds,
+  expandErrors,
   onToggleExpand,
 }: RosterProps) {
   const drivingCount = useMemo(() => countMainDriving(drivers), [drivers]);
@@ -122,6 +124,7 @@ export function Roster({
             depth={0}
             expandedIds={expandedIds}
             expandingIds={expandingIds}
+            expandErrors={expandErrors}
             onToggleExpand={onToggleExpand}
           />
         ))}
