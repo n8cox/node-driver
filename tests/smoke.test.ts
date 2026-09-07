@@ -45,6 +45,14 @@ describe('SampleAdapter', () => {
     expect(children).toEqual([]);
   });
 
+  it('returns empty array for expandable node with hasChildren but no sub-nodes', async () => {
+    const adapter = new SampleAdapter();
+    const children = await adapter.expandNode('motor-watchdog');
+    expect(children).toEqual([]);
+    expect(adapter.wasExpanded('motor-watchdog')).toBe(true);
+    expect(CHILDREN['motor-watchdog']).toBeUndefined();
+  });
+
   it('covers all four node roles in main drivers', async () => {
     const adapter = new SampleAdapter();
     const drivers = await adapter.getMainDrivers();
@@ -105,12 +113,12 @@ describe('useEnsemble lazy expand cache', () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     await act(async () => {
-      await result.current.toggleExpand('human-01', true);
+      await result.current.toggleExpand('motor-watchdog', true);
     });
 
-    expect(result.current.expandedIds.has('human-01')).toBe(true);
-    const operator = result.current.drivers.find((d) => d.id === 'human-01');
-    expect(operator?.children).toEqual([]);
+    expect(result.current.expandedIds.has('motor-watchdog')).toBe(true);
+    const watchdog = result.current.drivers.find((d) => d.id === 'motor-watchdog');
+    expect(watchdog?.children).toEqual([]);
   });
 });
 

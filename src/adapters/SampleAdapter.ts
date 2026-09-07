@@ -72,6 +72,18 @@ const MAIN_DRIVERS: DriverNode[] = [
     hasChildren: true,
   },
   {
+    id: 'motor-watchdog',
+    name: 'Watchdog Monitor',
+    purpose: 'Motor process — health checks with no visible sub-activities',
+    role: 'motor',
+    bodyState: {
+      state: 'watching',
+      driving: false,
+      activityLine: 'All checks passing — no drill-down activity',
+    },
+    hasChildren: true,
+  },
+  {
     id: 'motor-cron',
     name: 'Cron Sync Bot',
     purpose: 'Motor process — scheduled repo and index synchronization',

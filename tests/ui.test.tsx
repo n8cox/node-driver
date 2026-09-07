@@ -213,17 +213,13 @@ describe('DriverNodeRow', () => {
   });
 
   it('shows empty activity message and keeps collapse affordance after empty expand', () => {
-    const operator = {
-      ...MAIN_DRIVERS[0],
-      children: [] as DriverNode[],
-      hasChildren: false,
-    };
+    const watchdog = MAIN_DRIVERS.find((d) => d.id === 'motor-watchdog')!;
 
     render(
       <DriverNodeRow
-        node={operator}
+        node={{ ...watchdog, children: [] }}
         depth={0}
-        expandedIds={new Set(['human-01'])}
+        expandedIds={new Set(['motor-watchdog'])}
         expandingIds={new Set()}
         onToggleExpand={() => {}}
       />,
@@ -313,5 +309,25 @@ describe('App keyboard and integration', () => {
     await waitFor(() => {
       expect(screen.getByText('Research Lab Ensemble')).toBeTruthy();
     });
+  });
+
+  it('shows empty activity honesty after expanding motor-watchdog', async () => {
+    const { container } = render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Watchdog Monitor')).toBeTruthy();
+    });
+
+    const watchdogRow = container.querySelector('[data-node-id="motor-watchdog"]') as HTMLElement;
+    fireEvent.click(watchdogRow.querySelector('.expand-btn')!);
+
+    await waitFor(
+      () => {
+        expect(screen.getByText('No activity sub-nodes')).toBeTruthy();
+      },
+      { timeout: 2000 },
+    );
+
+    expect(document.querySelector('.expand-btn.expand-btn--expanded')).toBeTruthy();
   });
 });
